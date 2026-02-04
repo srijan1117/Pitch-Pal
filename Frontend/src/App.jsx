@@ -1,21 +1,21 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Home from './pages/home';
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Home from "./pages/Home";
+import BrowseFutsal from "./pages/BrowseFutsal";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
-import "./index.css";
+import Navbar from "./components/Navbar";
 
-
-function App() {
+export default function App() {
   return (
     <Router>
+      <Navbar />
+
       <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/" element={<Navigate to="/home" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
-        {/* Protected route */}
+        <Route path="/browseFutsal" element={<BrowseFutsal />} />
         <Route
           path="/home"
           element={
@@ -24,8 +24,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/browse"
+          element={
+            <ProtectedRoute>
+              <BrowseFutsal />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );
 }
-export default App;
