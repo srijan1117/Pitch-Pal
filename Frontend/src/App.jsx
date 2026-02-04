@@ -4,35 +4,28 @@ import BrowseFutsal from "./pages/BrowseFutsal";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Navbar from "./components/Navbar";
+import MainLayout from "./components/MainLayout.jsx";
 
 export default function App() {
   return (
     <Router>
-      <Navbar />
-
       <Routes>
+        {/* Public routes (NO navbar) */}
         <Route path="/" element={<Navigate to="/home" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/browseFutsal" element={<BrowseFutsal />} />
-        <Route
-          path="/home"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
 
+        {/* Protected routes (WITH navbar) */}
         <Route
-          path="/browse"
           element={
             <ProtectedRoute>
-              <BrowseFutsal />
+              <MainLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route path="/home" element={<Home />} />
+          <Route path="/browse" element={<BrowseFutsal />} />
+        </Route>
       </Routes>
     </Router>
   );
