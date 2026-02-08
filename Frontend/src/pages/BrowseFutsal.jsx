@@ -4,6 +4,7 @@ import api from "../api/axios";
 import { FutsalCard } from "../components/FutsalCard";
 import { BenefitCard } from "../components/BenefitCard";
 import { Zap, Users, Shield, DollarSign, Smartphone, Target } from "lucide-react";
+import futsalsData from "../data/futsals.json"; // Import mock data
 
 export default function BrowseFutsal() {
     // --- Filters / UI state ---
@@ -108,10 +109,28 @@ export default function BrowseFutsal() {
              * setCourts(res.data);
              */
 
-            // const res = await api.get("/futsals/", { params: filters });
-            // setCourts(res.data);
-
-            setCourts([]); // placeholder until backend exists
+            // Simulate network delay
+            // await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Client-side filtering for mock data
+            let filtered = [...futsalsData];
+            if (filters.search) {
+                const q = filters.search.toLowerCase();
+                filtered = filtered.filter(c => c.name.toLowerCase().includes(q));
+            }
+            if (filters.location) {
+                const q = filters.location.toLowerCase();
+                filtered = filtered.filter(c => c.location.toLowerCase().includes(q));
+            }
+            if (filters.sort === "price_low") {
+                filtered.sort((a, b) => a.price - b.price);
+            } else if (filters.sort === "price_high") {
+                filtered.sort((a, b) => b.price - a.price);
+            } else if (filters.sort === "rating") {
+                filtered.sort((a, b) => b.rating - a.rating);
+            }
+            
+            setCourts(filtered);
         } catch (err) {
             setError(
                 err?.response?.data?.detail ||

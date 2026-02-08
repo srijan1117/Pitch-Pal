@@ -1,0 +1,68 @@
+[
+  {
+    "id": 1,
+    "name": "Kathmandu Futsal Arena",
+    "location": "Baneshwor, Kathmandu",
+    "price": 1200,
+    "rating": 4.5,
+    "reviews": 128,
+    "image": "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?q=80&w=2071&auto=format&fit=crop",
+    "description": "Premier futsal arena with FIFA standard turf and ample parking space.",
+    "amenities": ["Parking", "Shower", "Locker Room", "Canteen"]
+  },
+  {
+    "id": 2,
+    "name": "Lalitpur Futsal Hub",
+    "location": "Jawalakhel, Lalitpur",
+    "price": 1500,
+    "rating": 4.8,
+    "reviews": 85,
+    "image": "https://images.unsplash.com/photo-1518605348400-437731df48d4?q=80&w=2070&auto=format&fit=crop",
+    "description": "High-quality turf located in the heart of Lalitpur. Perfect for evening games.",
+    "amenities": ["Floodlights", "Changing Room", "Cafe"]
+  },
+  {
+    "id": 3,
+    "name": "Bhakta Futsal Center",
+    "location": "Suryabinayak, Bhaktapur",
+    "price": 1000,
+    "rating": 4.2,
+    "reviews": 45,
+    "image": "https://images.unsplash.com/photo-1543351611-58f69d7c1781?q=80&w=1974&auto=format&fit=crop",
+    "description": "Affordable futsal ground with a friendly community atmosphere.",
+    "amenities": ["Parking", "Water Station"]
+  },
+  {
+    "id": 4,
+    "name": "Chabahil Sports Ground",
+    "location": "Chabahil, Kathmandu",
+    "price": 1300,
+    "rating": 4.6,
+    "reviews": 210,
+    "image": "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=2070&auto=format&fit=crop",
+    "description": "Spacious ground suitable for 5A-side and 7A-side games.",
+    "amenities": ["Pro Shop", "Shower", "Locker Room"]
+  },
+  {
+    "id": 5,
+    "name": "Kuleshwor Futsal Park",
+    "location": "Kuleshwor, Kathmandu",
+    "price": 1100,
+    "rating": 4.3,
+    "reviews": 92,
+    "image": "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2070&auto=format&fit=crop",
+    "description": "Well-maintained turf with excellent lighting for night matches.",
+    "amenities": ["Parking", "Canteen"]
+  },
+  {
+    "id": 6,
+    "name": "Thamel Futsal Club",
+    "location": "Thamel, Kathmandu",
+    "price": 1800,
+    "rating": 4.7,
+    "reviews": 156,
+    "image": "https://images.unsplash.com/photo-1624880357913-a8539238245b?q=80&w=2070&auto=format&fit=crop",
+    "description": "Premium futsal experience with top-notch facilities in the tourist hub.",
+    "amenities": ["Bar", "Lounge", "Shower", "Equipment Rental"]
+  }
+]
