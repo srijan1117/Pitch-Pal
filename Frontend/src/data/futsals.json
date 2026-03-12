@@ -5,10 +5,22 @@
     "location": "Baneshwor, Kathmandu",
     "price": 1200,
     "rating": 4.5,
-    "reviews": 128,
     "image": "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?q=80&w=2071&auto=format&fit=crop",
     "description": "Premier futsal arena with FIFA standard turf and ample parking space.",
-    "amenities": ["Parking", "Shower", "Locker Room", "Canteen"]
+    "amenities": ["Parking", "Shower", "Locker Room", "Canteen"],
+    "images": [
+      "https://images.unsplash.com/photo-1760174053338-4def27153cb7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+      "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
+    ],
+    "openingHour": 7,
+    "closingHour": 21,
+    "timeSlotPrices": [
+      { "startTime": "07:00 AM", "price": 1200 },
+      { "startTime": "08:00 AM", "price": 1200 },
+      { "startTime": "09:00 AM", "price": 1200 },
+      { "startTime": "10:00 AM", "price": 1500 }
+    ],
+    "weeklyBookingEnabled": true
   },
   {
     "id": 2,
@@ -16,10 +28,19 @@
     "location": "Jawalakhel, Lalitpur",
     "price": 1500,
     "rating": 4.8,
-    "reviews": 85,
     "image": "https://images.unsplash.com/photo-1518605348400-437731df48d4?q=80&w=2070&auto=format&fit=crop",
     "description": "High-quality turf located in the heart of Lalitpur. Perfect for evening games.",
-    "amenities": ["Floodlights", "Changing Room", "Cafe"]
+    "amenities": ["Floodlights", "Changing Room", "Cafe"],
+    "images": [
+      "https://images.unsplash.com/photo-1641029185333-7ed62a19d5f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
+    ],
+    "openingHour": 8,
+    "closingHour": 20,
+    "timeSlotPrices": [
+      { "startTime": "08:00 AM", "price": 1000 },
+      { "startTime": "09:00 AM", "price": 1000 }
+    ],
+    "weeklyBookingEnabled": false
   },
   {
     "id": 3,
@@ -27,10 +48,17 @@
     "location": "Suryabinayak, Bhaktapur",
     "price": 1000,
     "rating": 4.2,
-    "reviews": 45,
     "image": "https://images.unsplash.com/photo-1543351611-58f69d7c1781?q=80&w=1974&auto=format&fit=crop",
     "description": "Affordable futsal ground with a friendly community atmosphere.",
-    "amenities": ["Parking", "Water Station"]
+    "amenities": ["Parking", "Water Station"],
+    "images": [],
+    "openingHour": 6,
+    "closingHour": 22,
+    "timeSlotPrices": [
+      { "startTime": "06:00 AM", "price": 900 },
+      { "startTime": "07:00 AM", "price": 900 }
+    ],
+    "weeklyBookingEnabled": true
   },
   {
     "id": 4,
@@ -38,10 +66,14 @@
     "location": "Chabahil, Kathmandu",
     "price": 1300,
     "rating": 4.6,
-    "reviews": 210,
     "image": "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=2070&auto=format&fit=crop",
     "description": "Spacious ground suitable for 5A-side and 7A-side games.",
-    "amenities": ["Pro Shop", "Shower", "Locker Room"]
+    "amenities": ["Pro Shop", "Shower", "Locker Room"],
+    "images": [],
+    "openingHour": 7,
+    "closingHour": 21,
+    "timeSlotPrices": [],
+    "weeklyBookingEnabled": false
   },
   {
     "id": 5,
@@ -49,10 +81,14 @@
     "location": "Kuleshwor, Kathmandu",
     "price": 1100,
     "rating": 4.3,
-    "reviews": 92,
     "image": "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2070&auto=format&fit=crop",
     "description": "Well-maintained turf with excellent lighting for night matches.",
-    "amenities": ["Parking", "Canteen"]
+    "amenities": ["Parking", "Canteen"],
+    "images": [],
+    "openingHour": 7,
+    "closingHour": 20,
+    "timeSlotPrices": [],
+    "weeklyBookingEnabled": true
   },
   {
     "id": 6,
@@ -60,9 +96,53 @@
     "location": "Thamel, Kathmandu",
     "price": 1800,
     "rating": 4.7,
-    "reviews": 156,
     "image": "https://images.unsplash.com/photo-1624880357913-a8539238245b?q=80&w=2070&auto=format&fit=crop",
     "description": "Premium futsal experience with top-notch facilities in the tourist hub.",
-    "amenities": ["Bar", "Lounge", "Shower", "Equipment Rental"]
+    "amenities": ["Bar", "Lounge", "Shower", "Equipment Rental"],
+    "images": [],
+    "openingHour": 8,
+    "closingHour": 22,
+    "timeSlotPrices": [],
+    "weeklyBookingEnabled": false
+  },
+  {
+    "id": 7,
+    "name": "Jawlakhel Futsal Arena",
+    "location": "Jawlakhel, Lalitpur",
+    "price": 1400,
+    "rating": 4.4,
+    "image": "https://images.unsplash.com/photo-1600891964599-f61ba0e24092?q=80&w=2070&auto=format&fit=crop",
+    "description": "Modern futsal arena with professional coaching sessions.",
+    "amenities": ["Parking", "Locker Room", "Cafe"],
+    "images": [],
+    "openingHour": 7,
+    "closingHour": 21,
+    "timeSlotPrices": [
+      { "startTime": "07:00 AM", "price": 1400 },
+      { "startTime": "08:00 AM", "price": 1400 }
+    ],
+    "weeklyBookingEnabled": true
+  },
+  {
+    "id": 8,
+    "name": "Kantipath Futsal Center",
+    "location": "Kantipath, Kathmandu",
+    "price": 1250,
+    "rating": 4.5,
+    "image": "https://images.unsplash.com/photo-1601182835333-bd8883f9c9f5?q=80&w=2070&auto=format&fit=crop",
+    "description": "Central futsal ground with well-maintained turf and modern facilities.",
+    "amenities": ["Parking", "Shower", "Changing Room", "Canteen"],
+    "images": [
+      "https://images.unsplash.com/photo-1574180045827-681f8a1a9622?q=80&w=1080",
+      "https://images.unsplash.com/photo-1601182835333-bd8883f9c9f5?q=80&w=1080"
+    ],
+    "openingHour": 7,
+    "closingHour": 21,
+    "timeSlotPrices": [
+      { "startTime": "07:00 AM", "price": 1250 },
+      { "startTime": "08:00 AM", "price": 1250 },
+      { "startTime": "09:00 AM", "price": 1250 }
+    ],
+    "weeklyBookingEnabled": true
   }
 ]

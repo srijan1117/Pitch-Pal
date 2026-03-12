@@ -1,4 +1,5 @@
 import { Star, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { ImageWithFallback } from "./ui/ImageWithFallback";
 
 export function FutsalCard({ court }) {
@@ -58,10 +59,10 @@ export function FutsalCard({ court }) {
             </div>
           </div>
 
-          <button className="px-6 py-2.5 border-2 border-gray-800 hover:bg-green-600 hover:border-green-600 text-gray-800 hover:text-white rounded-lg font-medium transition-all active:scale-95 flex items-center space-x-1 shrink-0">
+          <Link to={`/browse/${court.id}`} className="px-6 py-2.5 border-2 border-gray-800 hover:bg-green-600 hover:border-green-600 text-gray-800 hover:text-white rounded-lg font-medium transition-all active:scale-95 flex items-center space-x-1 shrink-0">
             <span>View</span>
             <ArrowRight className="w-4 h-4" />
-          </button>
+          </Link>
         </div>
       </div>
     </div>

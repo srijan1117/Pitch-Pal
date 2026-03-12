@@ -24,6 +24,7 @@ import { FutsalCard } from "../components/FutsalCard";
 import { BenefitCard } from "../components/BenefitCard";
 import { StepCard } from "../components/StepCard";
 import { Footer } from "../components/Footer";
+import { FeaturedFutsals } from "../components/FeaturedFutsals";
 
 function Home() {
   const [selectedTime, setSelectedTime] = useState("");
@@ -45,39 +46,6 @@ function Home() {
     "07:00 PM - 08:00 PM",
     "08:00 PM - 09:00 PM",
     "09:00 PM - 10:00 PM",
-  ];
-
-  const futsalCourts = [
-    {
-      id: 1,
-      name: "Nepal Futsal",
-      location: "Sankhamul, Kathmandu",
-      price: 1200,
-      rating: 4,
-      reviews: 45,
-      image:
-        "https://images.unsplash.com/photo-1760174053338-4def27153cb7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmdXRzYWwlMjBjb3VydCUyMGluZG9vcnxlbnwxfHx8fDE3NjgyNzk2MDZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    },
-    {
-      id: 2,
-      name: "Nepal Futsal",
-      location: "Sankhamul, Kathmandu",
-      price: 1200,
-      rating: 4,
-      reviews: 45,
-      image:
-        "https://images.unsplash.com/photo-1641029185333-7ed62a19d5f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NjZXIlMjBmaWVsZCUyMGFlcmlhbHxlbnwxfHx8fDE3NjgyMjg3OTB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    },
-    {
-      id: 3,
-      name: "Nepal Futsal",
-      location: "Sankhamul, Kathmandu",
-      price: 1200,
-      rating: 4,
-      reviews: 45,
-      image:
-        "https://images.unsplash.com/photo-1758634025517-782312745372?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcG9ydHMlMjBjb3VydCUyMG91dGRvb3J8ZW58MXx8fHwxNzY4MzIwMzk3fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    },
   ];
 
   const playerBenefits = [
@@ -328,28 +296,16 @@ function Home() {
       </section>
 
       {/* Featured Futsal Section */}
-      <section className="py-12 md:py-20 lg:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center text-gray-900 mb-8 md:mb-16">
-            Featured Futsal
-          </h2>
+      <FeaturedFutsals />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {futsalCourts.map((court) => (
-              <FutsalCard key={court.id} court={court} />
-            ))}
-          </div>
-
-          <div className="text-center mt-10 md:mt-12">
-            <Link
-              to="/browse"
-              className="inline-block px-8 py-3.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-medium text-lg transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
-            >
-              View more Futsals
-            </Link>
-          </div>
-        </div>
-      </section>
+      <div className="text-center pb-12 bg-white">
+        <Link
+          to="/browse"
+          className="inline-block px-8 py-3.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-medium text-lg transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
+        >
+          View more Futsals
+        </Link>
+      </div>
 
       {/* How it Works Section */}
       <section className="py-12 md:py-20 lg:py-24 bg-gradient-to-b from-gray-50 to-white">

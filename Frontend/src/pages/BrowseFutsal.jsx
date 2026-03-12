@@ -12,6 +12,7 @@ export default function BrowseFutsal() {
     const [location, setLocation] = useState("");
     const [selectedTime, setSelectedTime] = useState("");
     const [sortBy, setSortBy] = useState("recommended");
+    const [visibleCount, setVisibleCount] = useState(6);
 
     // --- Data state (NOT hard-coded) ---
     const [courts, setCourts] = useState([]); // will be filled by backend later
@@ -155,6 +156,7 @@ export default function BrowseFutsal() {
 
     const onSearchSubmit = (e) => {
         e.preventDefault();
+        setVisibleCount(6);
         fetchCourts({
             search,
             location,
@@ -306,26 +308,25 @@ export default function BrowseFutsal() {
                 ) : (
                     <>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {courts.map((court) => (
+                            {courts.slice(0, visibleCount).map((court) => (
                                 <FutsalCard key={court.id} court={court} />
                             ))}
                         </div>
 
-                        <div className="flex justify-center mt-10">
-                            <button
-                                onClick={() =>
-                                    fetchCourts({
-                                        search,
-                                        location,
-                                        time: selectedTime,
-                                        sort: sortBy,
-                                    })
-                                }
-                                className="px-8 py-3.5 rounded-xl bg-gray-900 text-white font-medium hover:bg-black transition-colors"
-                            >
-                                View more
-                            </button>
-                        </div>
+                        {courts.length > 6 && (
+                            <div className="flex justify-center mt-10">
+                                <button
+                                    onClick={() =>
+                                        setVisibleCount((prev) =>
+                                            prev >= courts.length ? 6 : prev + 3
+                                        )
+                                    }
+                                    className="px-8 py-3.5 rounded-xl bg-gray-900 text-white font-medium hover:bg-black transition-colors"
+                                >
+                                    {visibleCount >= courts.length ? "View less" : "View more"}
+                                </button>
+                            </div>
+                        )}
                     </>
                 )}
             </section>

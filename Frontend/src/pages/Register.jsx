@@ -163,11 +163,6 @@ export default function Register() {
             {loading ? "Creating account..." : "Register"}
           </button>
         </form>
-
-        <p className="mt-4 text-xs text-gray-500">
-          Backend should be running at{" "}
-          <span className="font-medium">http://127.0.0.1:8000</span>
-        </p>
       </div>
     </div>
   );
