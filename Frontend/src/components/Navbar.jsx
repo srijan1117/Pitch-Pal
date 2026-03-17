@@ -1,9 +1,17 @@
 import { useState } from "react";
 import { NavLink, Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import { ProfileModal } from "./ProfileModal";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  const handleLogout = () => {
+    console.log("Logging out...");
+    // Add logout logic here
+    setIsProfileOpen(false);
+  };
 
   const linkClass = ({ isActive }) =>
     `transition-colors ${
@@ -48,15 +56,18 @@ export default function Navbar() {
 
           {/* Right */}
           <div className="flex items-center space-x-4">
-            <div className="hidden md:flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gray-200 rounded-full" />
+            <div className="hidden md:flex items-center space-x-3 group">
+              <div className="w-10 h-10 bg-gray-200 rounded-full group-hover:ring-2 group-hover:ring-green-500 transition-all" />
               <div className="text-left">
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-gray-900 group-hover:text-green-600 transition-colors">
                   Srijan Shrestha
                 </p>
-                <p className="text-xs text-gray-500 hover:text-green-600 cursor-pointer transition-colors">
+                <button 
+                  onClick={() => setIsProfileOpen(true)}
+                  className="text-xs text-gray-500 hover:text-green-600 transition-colors"
+                >
                   View Profile
-                </p>
+                </button>
               </div>
             </div>
 
@@ -104,9 +115,25 @@ export default function Navbar() {
             >
               Tournaments
             </NavLink>
+            <button
+              className="w-full text-left px-4 py-2 rounded-lg transition-colors hover:bg-green-50 text-gray-700"
+              onClick={() => {
+                setIsMenuOpen(false);
+                setIsProfileOpen(true);
+              }}
+            >
+              View Profile
+            </button>
           </div>
         )}
       </div>
+
+      {/* Profile Modal */}
+      {isProfileOpen && (
+        <ProfileModal 
+          close={() => setIsProfileOpen(false)} 
+        />
+      )}
     </nav>
   );
 }

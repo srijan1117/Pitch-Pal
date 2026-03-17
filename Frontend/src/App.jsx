@@ -3,6 +3,8 @@ import Home from "./pages/Home";
 import BrowseFutsal from "./pages/BrowseFutsal";
 import Bookings from "./pages/Bookings";
 import FutsalDetail from "./pages/FutsalDetail";
+import Tournaments from "./pages/Tournaments";
+import TournamentDetail from "./pages/TournamentDetail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -29,6 +31,8 @@ export default function App() {
           <Route path="/browse" element={<BrowseFutsal />} />
           <Route path="/browse/:id" element={<FutsalDetail />} />
           <Route path="/bookings" element={<Bookings />} />
+          <Route path="/tournaments" element={<Tournaments />} />
+          <Route path="/tournaments/:id" element={<TournamentDetail />} />
         </Route>
       </Routes>
     </Router>
