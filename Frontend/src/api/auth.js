@@ -12,6 +12,9 @@ export async function loginUser(payload) {
 
   localStorage.setItem("access_token", data.access_token);
   localStorage.setItem("refresh_token", data.refresh_token);
+  if (data.role) {
+    localStorage.setItem("role", data.role);
+  }
 
   return data;
 }
@@ -19,6 +22,7 @@ export async function loginUser(payload) {
 export function logout() {
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
+  localStorage.removeItem("role");
 }
 
 export function isLoggedIn() {

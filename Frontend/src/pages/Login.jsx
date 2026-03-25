@@ -20,10 +20,16 @@ export default function Login() {
 
     try {
       // ✅ REAL login: call backend, save tokens (inside loginUser)
-      await loginUser(form);
+      const data = await loginUser(form);
 
       // ✅ only navigate if login succeeded
-      navigate("/home");
+      if (data?.role === "owner") {
+        navigate("/owner-dashboard");
+      } else if (data?.role === "admin" || data?.role === "superuser") {
+        navigate("/admin-dashboard");
+      } else {
+        navigate("/home");
+      }
     } catch (err) {
       console.log("LOGIN ERROR:", err?.response?.data || err.message);
 

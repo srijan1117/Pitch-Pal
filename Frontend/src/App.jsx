@@ -9,6 +9,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./components/MainLayout.jsx";
+import OwnerDashboard from "./pages/OwnerDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 
 export default function App() {
   return (
@@ -33,6 +35,14 @@ export default function App() {
           <Route path="/bookings" element={<Bookings />} />
           <Route path="/tournaments" element={<Tournaments />} />
           <Route path="/tournaments/:id" element={<TournamentDetail />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["owner"]} />}>
+          <Route path="/owner-dashboard" element={<OwnerDashboard />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["admin", "superuser"]} />}>
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
         </Route>
       </Routes>
     </Router>
