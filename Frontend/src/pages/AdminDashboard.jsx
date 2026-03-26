@@ -1,12 +1,16 @@
 import { useNavigate } from "react-router-dom";
-import { LogOut, Users, Building2, MapPin, Calendar, FileText, AlertCircle, ShieldCheck } from "lucide-react";
-import { logout } from "../api/auth";
+import { useState } from "react";
+import LogoutConfirmationModal from "../components/LogoutConfirmationModal";
+import { LogOut, Users, Building2, MapPin, Calendar, FileText, AlertCircle, ShieldCheck, Menu, X } from "lucide-react";
+import { clearSession } from "../api/auth";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
-    logout();
+    clearSession();
     navigate("/login");
   };
 
@@ -33,7 +37,7 @@ export default function AdminDashboard() {
   return (
     <div className="flex h-screen bg-gray-50 font-sans">
       {/* Sidebar */}
-      <div className="w-64 bg-slate-900 text-white flex flex-col">
+      <div className="hidden md:flex w-64 bg-slate-900 text-white flex-col shrink-0">
         <div className="p-6 text-xl font-bold border-b border-slate-800 flex items-center space-x-2">
           <ShieldCheck className="w-6 h-6 text-indigo-400" />
           <span>Admin Portal</span>
@@ -67,12 +71,20 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
         {/* Top Navbar */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm z-10">
-          <h1 className="text-xl font-semibold text-gray-800">Admin Panel</h1>
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm z-10 shrink-0">
+          <div className="flex items-center gap-3">
+            <button 
+              className="md:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600 transition"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <h1 className="text-xl font-semibold text-gray-800">Admin Panel</h1>
+          </div>
           <button
-            onClick={handleLogout}
+            onClick={() => setIsLogoutModalOpen(true)}
             className="flex items-center space-x-2 text-gray-500 hover:text-red-600 transition bg-gray-50 hover:bg-red-50 px-4 py-2 rounded-lg"
           >
             <LogOut className="w-4 h-4" />
@@ -81,12 +93,12 @@ export default function AdminDashboard() {
         </header>
 
         {/* Scrollable Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-6 md:p-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8">
           
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
             {stats.map((stat, idx) => (
-              <div key={idx} className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center space-x-4">
+              <div key={idx} className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
                 <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
                   {stat.icon}
                 </div>
@@ -101,12 +113,12 @@ export default function AdminDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Recent Owners Table */}
             <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-6 border-b border-gray-100 bg-white flex justify-between items-center">
+              <div className="p-4 sm:p-6 border-b border-gray-100 bg-white flex justify-between items-center">
                 <h2 className="text-lg font-bold text-gray-800">Recent Owners</h2>
                 <a href="#" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium font-sans">View All</a>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse min-w-[600px] whitespace-nowrap">
                   <thead>
                     <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
                       <th className="px-6 py-4 font-medium">Owner Name</th>
@@ -169,6 +181,56 @@ export default function AdminDashboard() {
 
         </main>
       </div>
+
+      <LogoutConfirmationModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleLogout}
+      />
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-[60] flex">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
+          <div className="relative w-64 bg-slate-900 text-white flex flex-col h-full shadow-2xl transform transition-transform duration-300">
+            <div className="p-6 text-xl font-bold border-b border-slate-800 flex justify-between items-center">
+              <div className="flex items-center space-x-2">
+                <ShieldCheck className="w-6 h-6 text-indigo-400" />
+                <span>Admin</span>
+              </div>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="text-gray-400 hover:text-white transition">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center space-x-3 px-4 py-3 bg-indigo-600 rounded-lg text-white shadow-sm">
+                <LayoutDashboardIcon className="w-5 h-5" />
+                <span>Dashboard</span>
+              </button>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                <Users className="w-5 h-5" />
+                <span>Users</span>
+              </button>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                <Building2 className="w-5 h-5" />
+                <span>Owners</span>
+              </button>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                <MapPin className="w-5 h-5" />
+                <span>Venues</span>
+              </button>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                <Calendar className="w-5 h-5" />
+                <span>Bookings</span>
+              </button>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
+                <FileText className="w-5 h-5" />
+                <span>Reports</span>
+              </button>
+            </nav>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

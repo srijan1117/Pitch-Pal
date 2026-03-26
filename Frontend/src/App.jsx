@@ -11,13 +11,15 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./components/MainLayout.jsx";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import AutoLogout from "./components/AutoLogout";
 
 export default function App() {
   return (
     <Router>
+      <AutoLogout />
       <Routes>
         {/* Public routes (NO navbar) */}
-        <Route path="/" element={<Navigate to="/home" />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 

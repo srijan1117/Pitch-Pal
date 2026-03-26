@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { loginUser } from "../api/auth";
+import { loginUser, clearSession, isSessionExpired } from "../api/auth";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -8,6 +8,17 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false); // Eye toggle state
+
+  useEffect(() => {
+    if (!isSessionExpired() && localStorage.getItem("access_token")) {
+      const role = localStorage.getItem("role");
+      if (role === "owner") navigate("/owner-dashboard");
+      else if (role === "admin" || role === "superuser") navigate("/admin-dashboard");
+      else navigate("/home");
+    } else {
+      clearSession();
+    }
+  }, [navigate]);
 
   const onChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -54,7 +65,7 @@ export default function Login() {
       </div>
 
       {/* RIGHT SIDE: Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-16">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 md:p-16">
         <div className="w-full max-w-md">
           <h1 className="text-4xl font-bold text-gray-900 mb-2 text-left">Welcome !</h1>
           <p className="text-gray-500 mb-8 font-medium">Please enter your details to sign in.</p>

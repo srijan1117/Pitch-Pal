@@ -80,7 +80,7 @@ export default function Register() {
       </div>
 
       {/* RIGHT SIDE: Register Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 overflow-y-auto">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 md:p-12 overflow-y-auto">
         <div className="w-full max-w-lg">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Create account</h1>
           <p className="text-gray-500 mb-6 font-medium">Join us today! It only takes a minute.</p>

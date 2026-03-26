@@ -1,16 +1,21 @@
 import { useState } from "react";
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { ProfileModal } from "./ProfileModal";
+import LogoutConfirmationModal from "./LogoutConfirmationModal";
+import { clearSession } from "../api/auth";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleLogout = () => {
-    console.log("Logging out...");
-    // Add logout logic here
+    clearSession();
     setIsProfileOpen(false);
+    navigate("/login");
   };
 
   const linkClass = ({ isActive }) =>
@@ -62,12 +67,21 @@ export default function Navbar() {
                 <p className="text-sm font-medium text-gray-900 group-hover:text-green-600 transition-colors">
                   Srijan Shrestha
                 </p>
-                <button 
-                  onClick={() => setIsProfileOpen(true)}
-                  className="text-xs text-gray-500 hover:text-green-600 transition-colors"
-                >
-                  View Profile
-                </button>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => setIsProfileOpen(true)}
+                    className="text-xs text-gray-500 hover:text-green-600 transition-colors"
+                  >
+                    View Profile
+                  </button>
+                  <span className="text-xs text-gray-300">|</span>
+                  <button 
+                    onClick={() => setIsLogoutModalOpen(true)}
+                    className="text-xs text-gray-500 hover:text-red-600 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -124,6 +138,15 @@ export default function Navbar() {
             >
               View Profile
             </button>
+            <button
+              className="w-full text-left px-4 py-2 rounded-lg transition-colors hover:bg-red-50 text-red-600 font-medium"
+              onClick={() => {
+                setIsMenuOpen(false);
+                setIsLogoutModalOpen(true);
+              }}
+            >
+              Logout
+            </button>
           </div>
         )}
       </div>
@@ -134,6 +157,12 @@ export default function Navbar() {
           close={() => setIsProfileOpen(false)} 
         />
       )}
+
+      <LogoutConfirmationModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleLogout}
+      />
     </nav>
   );
 }

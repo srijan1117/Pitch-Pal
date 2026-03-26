@@ -1,5 +1,8 @@
 import { X, Camera } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { clearSession } from "../api/auth";
+import LogoutConfirmationModal from "./LogoutConfirmationModal";
 
 export function ProfileModal({ close }) {
   const [form, setForm] = useState({
@@ -8,6 +11,15 @@ export function ProfileModal({ close }) {
     phone: "+977 9812345678",
     email: "srijan@example.com",
   });
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    clearSession();
+    close();
+    navigate("/login");
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -20,7 +32,7 @@ export function ProfileModal({ close }) {
   };
 
   return (
-    <div className="absolute right-0 top-14 z-50 w-[520px] bg-white rounded-2xl shadow-2xl p-6">
+    <div className="fixed inset-x-4 top-20 sm:absolute sm:inset-auto sm:right-0 sm:top-14 z-50 w-auto sm:w-[520px] max-h-[85vh] overflow-y-auto bg-white rounded-2xl shadow-2xl p-4 sm:p-6">
 
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
@@ -53,7 +65,7 @@ export function ProfileModal({ close }) {
       </div>
 
       {/* Form */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-4">
 
         <div>
           <label className="text-sm text-gray-500">First Name</label>
@@ -98,22 +110,36 @@ export function ProfileModal({ close }) {
       </div>
 
       {/* Footer */}
-      <div className="flex justify-end gap-3 mt-6">
+      <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4 sm:gap-0">
         <button
-          onClick={close}
-          className="px-5 py-2 rounded-lg border"
+          onClick={() => setIsLogoutModalOpen(true)}
+          className="w-full sm:w-auto px-5 py-2 rounded-lg text-red-600 font-semibold hover:bg-red-50 transition-colors"
         >
-          Cancel
+          Logout
         </button>
 
-        <button 
-          onClick={handleSave}
-          className="px-5 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition-colors"
-        >
-          Save
-        </button>
+        <div className="flex gap-3 w-full sm:w-auto">
+          <button
+            onClick={close}
+            className="flex-1 sm:flex-none px-5 py-2 rounded-lg border"
+          >
+            Cancel
+          </button>
+
+          <button 
+            onClick={handleSave}
+            className="flex-1 sm:flex-none px-5 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition-colors"
+          >
+            Save
+          </button>
+        </div>
       </div>
 
+      <LogoutConfirmationModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleLogout}
+      />
     </div>
   );
 }

@@ -1,12 +1,16 @@
 import { useNavigate } from "react-router-dom";
-import { LogOut, Home, Calendar, LayoutDashboard, Clock, DollarSign } from "lucide-react";
-import { logout } from "../api/auth";
+import { useState } from "react";
+import LogoutConfirmationModal from "../components/LogoutConfirmationModal";
+import { LogOut, Home, Calendar, LayoutDashboard, Clock, DollarSign, Menu, X } from "lucide-react";
+import { clearSession } from "../api/auth";
 
 export default function OwnerDashboard() {
   const navigate = useNavigate();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
-    logout();
+    clearSession();
     navigate("/login");
   };
 
@@ -34,7 +38,7 @@ export default function OwnerDashboard() {
   return (
     <div className="flex h-screen bg-gray-100 font-sans">
       {/* Sidebar */}
-      <div className="w-64 bg-slate-800 text-white flex flex-col">
+      <div className="hidden md:flex w-64 bg-slate-800 text-white flex-col shrink-0">
         <div className="p-6 text-xl font-bold border-b border-slate-700">
           Owner Portal
         </div>
@@ -63,12 +67,20 @@ export default function OwnerDashboard() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
         {/* Top Navbar */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
-          <h1 className="text-xl font-semibold text-gray-800">Owner Dashboard</h1>
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm shrink-0">
+          <div className="flex items-center gap-3">
+            <button 
+              className="md:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 text-gray-600 transition"
+              onClick={() => setIsMobileMenuOpen(true)}
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <h1 className="text-xl font-semibold text-gray-800">Owner Dashboard</h1>
+          </div>
           <button
-            onClick={handleLogout}
+            onClick={() => setIsLogoutModalOpen(true)}
             className="flex items-center space-x-2 text-gray-600 hover:text-red-600 transition"
           >
             <LogOut className="w-5 h-5" />
@@ -77,11 +89,11 @@ export default function OwnerDashboard() {
         </header>
 
         {/* Scrollable Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 sm:p-6">
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
             {stats.map((stat, idx) => (
-              <div key={idx} className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center space-x-4">
+              <div key={idx} className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
                 <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
                   {stat.icon}
                 </div>
@@ -96,11 +108,11 @@ export default function OwnerDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Recent Bookings Table */}
             <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-6 border-b border-gray-100">
+              <div className="p-4 sm:p-6 border-b border-gray-100">
                 <h2 className="text-lg font-bold text-gray-800">Recent Bookings</h2>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse min-w-[600px] whitespace-nowrap">
                   <thead>
                     <tr className="bg-gray-50 text-gray-600 text-sm">
                       <th className="px-6 py-4 font-medium">Court Name</th>
@@ -155,6 +167,50 @@ export default function OwnerDashboard() {
           </div>
         </main>
       </div>
+
+      <LogoutConfirmationModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleLogout}
+      />
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-[60] flex">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
+          <div className="relative w-64 bg-slate-800 text-white flex flex-col h-full shadow-2xl transform transition-transform duration-300">
+            <div className="p-6 text-xl font-bold border-b border-slate-700 flex justify-between items-center">
+              <span>Owner Portal</span>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="text-gray-400 hover:text-white transition">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+              {/* Copying the navigation links for mobile menu */}
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center space-x-3 px-4 py-3 bg-slate-700 rounded-lg text-white">
+                <LayoutDashboard className="w-5 h-5" />
+                <span>Overview</span>
+              </button>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                <Home className="w-5 h-5" />
+                <span>My Courts</span>
+              </button>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                <Calendar className="w-5 h-5" />
+                <span>Bookings</span>
+              </button>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                <Clock className="w-5 h-5" />
+                <span>Schedule</span>
+              </button>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                <DollarSign className="w-5 h-5" />
+                <span>Earnings</span>
+              </button>
+            </nav>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
