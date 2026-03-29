@@ -33,7 +33,6 @@ class FutsalCourtCreateSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'address', 'description', 'price_per_hour', 'is_active']
 
     def create(self, validated_data):
-        # Owner is injected from the view via context
         owner = self.context['request'].user
         return FutsalCourt.objects.create(owner=owner, **validated_data)
 
@@ -68,7 +67,6 @@ class BookingSerializer(serializers.ModelSerializer):
         if not time_slot.is_available:
             raise serializers.ValidationError({'time_slot': 'This time slot is not available.'})
 
-        # Check for duplicate bookings on same date
         existing = Booking.objects.filter(
             court=court,
             time_slot=time_slot,
@@ -85,6 +83,7 @@ class BookingSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         from datetime import datetime, date as date_type
+        from decimal import Decimal
         user = self.context['request'].user
         time_slot = validated_data['time_slot']
         court = validated_data['court']
@@ -92,7 +91,7 @@ class BookingSerializer(serializers.ModelSerializer):
         start = datetime.combine(date_type.today(), time_slot.start_time)
         end = datetime.combine(date_type.today(), time_slot.end_time)
         hours = (end - start).seconds / 3600
-        total_amount = hours * court.price_per_hour
+        total_amount = round(Decimal(str(hours)) * court.price_per_hour, 2)
 
         booking = Booking.objects.create(
             user=user,
