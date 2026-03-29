@@ -37,3 +37,8 @@ export function isSessionExpired() {
 export function isLoggedIn() {
   return !!localStorage.getItem("access_token");
 }
+
+export async function updatePassword(payload) {
+  const res = await api.put("/accounts/update_password/", payload);
+  return res.data;
+}
