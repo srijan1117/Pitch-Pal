@@ -19,7 +19,9 @@ from futsal.serializers import (
 from futsal.permissions import IsOwner, IsOwnerOfCourt
 from PitchPal.utils import api_response
 
-
+ 
+from futsal.models import Review
+from futsal.serializers import ReviewSerializer
 # ─────────────────────────────────────────────
 # COURT VIEWS
 # ─────────────────────────────────────────────
@@ -293,6 +295,85 @@ class OwnerBookingListView(APIView):
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
 
 
+
+class ReviewCreateView(APIView):
+    """Authenticated user: submit a review for a completed booking."""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+ 
+    @swagger_auto_schema(
+        operation_description="Submit a star rating and comment for a court. Only allowed after a completed booking.",
+        request_body=ReviewSerializer,
+        tags=["Reviews"]
+    )
+    def post(self, request):
+        serializer = ReviewSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            review = serializer.save()
+            return api_response(is_success=True, result=ReviewSerializer(review).data, status_code=status.HTTP_201_CREATED)
+        return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+ 
+ 
+class ReviewUpdateDeleteView(APIView):
+    """Authenticated user: update or delete their own review."""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+ 
+    def get_review(self, review_id, user):
+        try:
+            review = Review.objects.get(pk=review_id, user=user)
+            return review, None
+        except Review.DoesNotExist:
+            return None, "Review not found or not yours."
+ 
+    @swagger_auto_schema(
+        operation_description="Update your review.",
+        request_body=ReviewSerializer,
+        tags=["Reviews"]
+    )
+    def put(self, request, review_id):
+        review, error = self.get_review(review_id, request.user)
+        if error:
+            return api_response(is_success=False, error_message=error, status_code=status.HTTP_404_NOT_FOUND)
+        serializer = ReviewSerializer(review, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
+        return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+ 
+    @swagger_auto_schema(operation_description="Delete your review.", tags=["Reviews"])
+    def delete(self, request, review_id):
+        review, error = self.get_review(review_id, request.user)
+        if error:
+            return api_response(is_success=False, error_message=error, status_code=status.HTTP_404_NOT_FOUND)
+        review.delete()
+        return api_response(is_success=True, result={"message": "Review deleted."}, status_code=status.HTTP_200_OK)
+ 
+ 
+class CourtReviewListView(APIView):
+    """Public: list all reviews for a court."""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+ 
+    @swagger_auto_schema(operation_description="List all reviews for a court.", tags=["Reviews"])
+    def get(self, request, court_id):
+        try:
+            court = FutsalCourt.objects.get(pk=court_id, is_active=True)
+        except FutsalCourt.DoesNotExist:
+            return api_response(is_success=False, error_message="Court not found.", status_code=status.HTTP_404_NOT_FOUND)
+ 
+        reviews = Review.objects.filter(court=court).select_related('user').order_by('-created_at')
+        serializer = ReviewSerializer(reviews, many=True)
+        return api_response(
+            is_success=True,
+            result={
+                "average_rating": court.average_rating,
+                "total_reviews": court.total_reviews,
+                "reviews": serializer.data
+            },
+            status_code=status.HTTP_200_OK
+        )
+
 # ─────────────────────────────────────────────
 # PAYMENT VIEWS (Khalti)
 # ─────────────────────────────────────────────
@@ -426,3 +507,7 @@ class KhaltiVerifyView(APIView):
 
         except Exception as e:
             return api_response(is_success=False, error_message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+
+    

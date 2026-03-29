@@ -1,4 +1,5 @@
 from django.urls import path
+from futsal.views import ReviewCreateView, ReviewUpdateDeleteView, CourtReviewListView
 from futsal.views import (
     CourtListView, CourtCreateView, CourtDetailView, OwnerCourtListView,
     TimeSlotCreateView, TimeSlotDetailView, CourtTimeSlotsView,
@@ -23,6 +24,12 @@ urlpatterns = [
     path('bookings/create/', BookingCreateView.as_view(), name='booking-create'),   # User
     path('bookings/<int:booking_id>/cancel/', BookingCancelView.as_view(), name='booking-cancel'),  # User
     path('bookings/owner/', OwnerBookingListView.as_view(), name='owner-bookings'), # Owner
+
+
+    # ── Review ─────────────────────────────────
+    path('reviews/create/', ReviewCreateView.as_view(), name='review-create'),
+    path('reviews/<int:review_id>/', ReviewUpdateDeleteView.as_view(), name='review-detail'),
+    path('courts/<int:court_id>/reviews/', CourtReviewListView.as_view(), name='court-reviews'),
 
     # ── Payment ──────────────────────────────────
     path('payment/khalti/initiate/', KhaltiInitiateView.as_view(), name='khalti-initiate'),
