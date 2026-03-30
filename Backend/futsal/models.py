@@ -16,6 +16,7 @@ class FutsalCourt(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    amenities = models.JSONField(default=list, blank=True) 
 
     def __str__(self):
         return f"{self.name} ({self.owner.email})"
@@ -45,6 +46,7 @@ class TimeSlot(models.Model):
     start_time = models.TimeField()
     end_time = models.TimeField()
     is_available = models.BooleanField(default=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
 
     class Meta:
         unique_together = ('court', 'start_time', 'end_time')
@@ -85,7 +87,19 @@ class Booking(models.Model):
     def __str__(self):
         return f"Booking#{self.id} - {self.user.email} @ {self.court.name} on {self.booking_date}"
 
+class WeeklyBooking(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='weekly_bookings')
+    court = models.ForeignKey(FutsalCourt, on_delete=models.CASCADE, related_name='weekly_bookings')
+    time_slot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE, related_name='weekly_bookings')
+    start_date = models.DateField()
+    end_date = models.DateField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"Weekly booking by {self.user.email} at {self.court.name}"
+    
+    
 class PaymentStatusEnum(models.TextChoices):
     PENDING = 'pending', 'Pending'
     SUCCESS = 'success', 'Success'
