@@ -12,6 +12,7 @@ class FutsalCourt(models.Model):
     address = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     price_per_hour = models.DecimalField(max_digits=10, decimal_places=2)
+    image = models.ImageField(upload_to='courts/', blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -29,6 +30,14 @@ class FutsalCourt(models.Model):
     @property
     def total_reviews(self):
         return self.reviews.count()
+    
+class CourtImage(models.Model):
+    court = models.ForeignKey(FutsalCourt, on_delete=models.CASCADE, related_name='gallery')
+    image = models.ImageField(upload_to='courts/gallery/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image for {self.court.name}"
 
 
 class TimeSlot(models.Model):

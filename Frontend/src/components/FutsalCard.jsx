@@ -3,7 +3,10 @@ import { Link } from "react-router-dom";
 import { ImageWithFallback } from "./ui/ImageWithFallback";
 
 export function FutsalCard({ court }) {
-  const rating = Math.round(court.rating || 0);
+  const rating = Math.round(court.average_rating || court.rating || 0);
+  const price = court.price_per_hour || court.price;
+  const location = court.address || court.location;
+  const totalReviews = court.total_reviews ?? court.reviews ?? 0;
 
   return (
     <div className="group bg-white rounded-2xl overflow-hidden border border-gray-200 hover:border-green-500 transition-all duration-300 hover:shadow-2xl flex flex-col h-full">
@@ -26,7 +29,7 @@ export function FutsalCard({ court }) {
 
           <div className="text-right shrink-0">
             <p className="text-xl md:text-2xl font-bold text-green-600">
-              Rs {court.price}
+              Rs {price}
             </p>
             <p className="text-sm text-gray-500">/Hour</p>
           </div>
@@ -37,7 +40,7 @@ export function FutsalCard({ court }) {
         <div className="flex items-center justify-between gap-4 mt-auto">
           <div className="min-h-[3.25rem] flex flex-col justify-center">
             <p className="text-gray-700 font-medium line-clamp-1">
-              {court.location}
+              {location}
             </p>
 
             <div className="flex items-center space-x-2">
@@ -54,12 +57,15 @@ export function FutsalCard({ court }) {
                 ))}
               </div>
               <span className="text-sm text-gray-600 whitespace-nowrap">
-                {court.reviews} reviews
+                {totalReviews} reviews
               </span>
             </div>
           </div>
 
-          <Link to={`/browse/${court.id}`} className="px-6 py-2.5 border-2 border-gray-800 hover:bg-green-600 hover:border-green-600 text-gray-800 hover:text-white rounded-lg font-medium transition-all active:scale-95 flex items-center space-x-1 shrink-0">
+          <Link
+            to={`/browse/${court.id}`}
+            className="px-6 py-2.5 border-2 border-gray-800 hover:bg-green-600 hover:border-green-600 text-gray-800 hover:text-white rounded-lg font-medium transition-all active:scale-95 flex items-center space-x-1 shrink-0"
+          >
             <span>View</span>
             <ArrowRight className="w-4 h-4" />
           </Link>

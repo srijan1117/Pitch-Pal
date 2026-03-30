@@ -1,29 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, MapPin, Clock } from "lucide-react";
-import api from "../api/axios";
 import { FutsalCard } from "../components/FutsalCard";
 import { BenefitCard } from "../components/BenefitCard";
 import { Zap, Users, Shield, DollarSign, Smartphone, Target } from "lucide-react";
-import futsalsData from "../data/futsals.json"; // Import mock data
+import api from "../api/axios";
 
 export default function BrowseFutsal() {
-    // --- Filters / UI state ---
     const [search, setSearch] = useState("");
     const [location, setLocation] = useState("");
     const [selectedTime, setSelectedTime] = useState("");
     const [sortBy, setSortBy] = useState("recommended");
     const [visibleCount, setVisibleCount] = useState(6);
-
-    // --- Data state (NOT hard-coded) ---
-    const [courts, setCourts] = useState([]); // will be filled by backend later
+    const [courts, setCourts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+
     const playerBenefits = [
         {
             icon: <Zap className="w-8 h-8" />,
             title: "Instant & Real-Time Booking",
-            description:
-                "See real-time availability and book instantly without calls, delays, or double bookings.",
+            description: "See real-time availability and book instantly without calls, delays, or double bookings.",
             gradient: "from-amber-50 to-amber-100",
             iconBg: "bg-amber-500",
             borderColor: "border-amber-200",
@@ -31,8 +27,7 @@ export default function BrowseFutsal() {
         {
             icon: <Users className="w-8 h-8" />,
             title: "Easy & User-Friendly Experience",
-            description:
-                "Search, compare, and book futsal courts fast with a clean mobile-first UI.",
+            description: "Search, compare, and book futsal courts fast with a clean mobile-first UI.",
             gradient: "from-blue-50 to-blue-100",
             iconBg: "bg-blue-500",
             borderColor: "border-blue-200",
@@ -40,8 +35,7 @@ export default function BrowseFutsal() {
         {
             icon: <Target className="w-8 h-8" />,
             title: "Wide Choice of Futsal Courts",
-            description:
-                "Browse multiple venues in one place and choose the pitch that fits your game.",
+            description: "Browse multiple venues in one place and choose the pitch that fits your game.",
             gradient: "from-green-50 to-green-100",
             iconBg: "bg-green-500",
             borderColor: "border-green-200",
@@ -49,8 +43,7 @@ export default function BrowseFutsal() {
         {
             icon: <Shield className="w-8 h-8" />,
             title: "Secure & Flexible Payments",
-            description:
-                "Safe payment options with instant confirmation for a smooth booking experience.",
+            description: "Safe payment options with instant confirmation for a smooth booking experience.",
             gradient: "from-purple-50 to-purple-100",
             iconBg: "bg-purple-500",
             borderColor: "border-purple-200",
@@ -58,8 +51,7 @@ export default function BrowseFutsal() {
         {
             icon: <DollarSign className="w-8 h-8" />,
             title: "Transparent Pricing",
-            description:
-                "No hidden costs — what you see is what you pay.",
+            description: "No hidden costs — what you see is what you pay.",
             gradient: "from-pink-50 to-pink-100",
             iconBg: "bg-pink-500",
             borderColor: "border-pink-200",
@@ -67,75 +59,54 @@ export default function BrowseFutsal() {
         {
             icon: <Smartphone className="w-8 h-8" />,
             title: "Anytime, Anywhere Access",
-            description:
-                "Book on mobile, tablet, or desktop — wherever you are.",
+            description: "Book on mobile, tablet, or desktop — wherever you are.",
             gradient: "from-cyan-50 to-cyan-100",
             iconBg: "bg-cyan-500",
             borderColor: "border-cyan-200",
         },
     ];
 
-    // Same time slots you used on Home
-    const timeSlots = useMemo(
-        () => [
-            "06:00 AM - 07:00 AM",
-            "07:00 AM - 08:00 AM",
-            "08:00 AM - 09:00 AM",
-            "09:00 AM - 10:00 AM",
-            "10:00 AM - 11:00 AM",
-            "11:00 AM - 12:00 PM",
-            "12:00 PM - 01:00 PM",
-            "01:00 PM - 02:00 PM",
-            "02:00 PM - 03:00 PM",
-            "03:00 PM - 04:00 PM",
-            "04:00 PM - 05:00 PM",
-            "05:00 PM - 06:00 PM",
-            "06:00 PM - 07:00 PM",
-            "07:00 PM - 08:00 PM",
-            "08:00 PM - 09:00 PM",
-            "09:00 PM - 10:00 PM",
-        ],
-        []
+    const timeSlots = useMemo(() => [
+        "06:00 AM - 07:00 AM", "07:00 AM - 08:00 AM", "08:00 AM - 09:00 AM",
+        "09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM", "11:00 AM - 12:00 PM",
+        "12:00 PM - 01:00 PM", "01:00 PM - 02:00 PM", "02:00 PM - 03:00 PM",
+        "03:00 PM - 04:00 PM", "04:00 PM - 05:00 PM", "05:00 PM - 06:00 PM",
+        "06:00 PM - 07:00 PM", "07:00 PM - 08:00 PM", "08:00 PM - 09:00 PM",
+        "09:00 PM - 10:00 PM",
+    ], []);
 
-    );
-
-    // --- Backend fetch (ready for later) ---
+    // ── Fetch courts from backend ─────────────────────────────────────────
     const fetchCourts = async (filters = {}) => {
         setLoading(true);
         setError("");
         try {
-            /**
-             * ✅ When backend is ready, uncomment this and use your real endpoint:
-             * const res = await api.get("/futsals/", { params: filters });
-             * setCourts(res.data);
-             */
+            const res = await api.get("/futsal/courts/");
+            let data = res.data?.Result || [];
 
-            // Simulate network delay
-            // await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Client-side filtering for mock data
-            let filtered = [...futsalsData];
+            // Client-side filtering
             if (filters.search) {
                 const q = filters.search.toLowerCase();
-                filtered = filtered.filter(c => c.name.toLowerCase().includes(q));
+                data = data.filter(c => c.name.toLowerCase().includes(q));
             }
             if (filters.location) {
                 const q = filters.location.toLowerCase();
-                filtered = filtered.filter(c => c.location.toLowerCase().includes(q));
+                data = data.filter(c => c.address.toLowerCase().includes(q));
             }
+
+            // Client-side sorting
             if (filters.sort === "price_low") {
-                filtered.sort((a, b) => a.price - b.price);
+                data.sort((a, b) => parseFloat(a.price_per_hour) - parseFloat(b.price_per_hour));
             } else if (filters.sort === "price_high") {
-                filtered.sort((a, b) => b.price - a.price);
+                data.sort((a, b) => parseFloat(b.price_per_hour) - parseFloat(a.price_per_hour));
             } else if (filters.sort === "rating") {
-                filtered.sort((a, b) => b.rating - a.rating);
+                data.sort((a, b) => (b.average_rating || 0) - (a.average_rating || 0));
             }
-            
-            setCourts(filtered);
+
+            setCourts(data);
         } catch (err) {
             setError(
+                err?.response?.data?.ErrorMessage ||
                 err?.response?.data?.detail ||
-                err?.response?.data?.message ||
                 "Failed to load futsal courts"
             );
         } finally {
@@ -143,63 +114,26 @@ export default function BrowseFutsal() {
         }
     };
 
-    // Initial load (later: load all courts)
     useEffect(() => {
-        fetchCourts({
-            search: "",
-            location: "",
-            time: "",
-            sort: "recommended",
-        });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        fetchCourts({ search: "", location: "", time: "", sort: "recommended" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const onSearchSubmit = (e) => {
         e.preventDefault();
         setVisibleCount(6);
-        fetchCourts({
-            search,
-            location,
-            time: selectedTime,
-            sort: sortBy,
-        });
+        fetchCourts({ search, location, time: selectedTime, sort: sortBy });
     };
-
-    // Bottom benefits section (static UI is OK)
-    const benefits = [
-        {
-            title: "Real-time availability",
-            description: "See which futsal courts are available instantly before booking.",
-            iconBg: "bg-green-600",
-            borderColor: "border-green-200",
-            gradient: "from-green-50 to-white",
-        },
-        {
-            title: "Easy search & filters",
-            description: "Search by name, location, and time slot in seconds.",
-            iconBg: "bg-green-600",
-            borderColor: "border-green-200",
-            gradient: "from-green-50 to-white",
-        },
-        {
-            title: "Secure booking process",
-            description: "A smooth experience from browsing to confirmation.",
-            iconBg: "bg-green-600",
-            borderColor: "border-green-200",
-            gradient: "from-green-50 to-white",
-        },
-    ];
 
     return (
         <div className="min-h-screen bg-white">
-            {/* Filter row (below main Navbar) */}
+            {/* Filter row */}
             <div className="border-b border-gray-200 bg-white sticky top-16 z-40">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
                     <form
                         onSubmit={onSearchSubmit}
                         className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center"
                     >
-                        {/* Search */}
                         <div className="md:col-span-3">
                             <div className="relative">
                                 <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -212,7 +146,6 @@ export default function BrowseFutsal() {
                             </div>
                         </div>
 
-                        {/* Location */}
                         <div className="md:col-span-3">
                             <div className="relative">
                                 <MapPin className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -225,7 +158,6 @@ export default function BrowseFutsal() {
                             </div>
                         </div>
 
-                        {/* Time */}
                         <div className="md:col-span-3">
                             <div className="relative">
                                 <Clock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -236,15 +168,12 @@ export default function BrowseFutsal() {
                                 >
                                     <option value="">Time</option>
                                     {timeSlots.map((t) => (
-                                        <option key={t} value={t}>
-                                            {t}
-                                        </option>
+                                        <option key={t} value={t}>{t}</option>
                                     ))}
                                 </select>
                             </div>
                         </div>
 
-                        {/* Sort */}
                         <div className="md:col-span-2">
                             <select
                                 value={sortBy}
@@ -258,7 +187,6 @@ export default function BrowseFutsal() {
                             </select>
                         </div>
 
-                        {/* Submit */}
                         <div className="md:col-span-1 flex justify-end">
                             <button
                                 type="submit"
@@ -267,7 +195,6 @@ export default function BrowseFutsal() {
                                 Search
                             </button>
                         </div>
-
                     </form>
                 </div>
             </div>
@@ -283,10 +210,7 @@ export default function BrowseFutsal() {
                 {loading ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {Array.from({ length: 9 }).map((_, i) => (
-                            <div
-                                key={i}
-                                className="rounded-2xl border border-gray-200 overflow-hidden bg-white animate-pulse"
-                            >
+                            <div key={i} className="rounded-2xl border border-gray-200 overflow-hidden bg-white animate-pulse">
                                 <div className="h-64 bg-gray-100" />
                                 <div className="p-5 space-y-3">
                                     <div className="h-5 bg-gray-100 rounded w-2/3" />
@@ -298,12 +222,8 @@ export default function BrowseFutsal() {
                     </div>
                 ) : courts.length === 0 ? (
                     <div className="rounded-2xl border border-gray-200 bg-gray-50 p-10 text-center">
-                        <p className="text-lg font-semibold text-gray-900">
-                            No futsal courts to show yet
-                        </p>
-                        <p className="text-sm text-gray-600 mt-2">
-                            When you connect the backend, this page will load courts dynamically.
-                        </p>
+                        <p className="text-lg font-semibold text-gray-900">No futsal courts found</p>
+                        <p className="text-sm text-gray-600 mt-2">Try adjusting your search filters.</p>
                     </div>
                 ) : (
                     <>
@@ -316,11 +236,7 @@ export default function BrowseFutsal() {
                         {courts.length > 6 && (
                             <div className="flex justify-center mt-10">
                                 <button
-                                    onClick={() =>
-                                        setVisibleCount((prev) =>
-                                            prev >= courts.length ? 6 : prev + 3
-                                        )
-                                    }
+                                    onClick={() => setVisibleCount((prev) => prev >= courts.length ? 6 : prev + 3)}
                                     className="px-8 py-3.5 rounded-xl bg-gray-900 text-white font-medium hover:bg-black transition-colors"
                                 >
                                     {visibleCount >= courts.length ? "View less" : "View more"}
@@ -331,6 +247,7 @@ export default function BrowseFutsal() {
                 )}
             </section>
 
+            {/* Benefits section */}
             <section className="py-12 md:py-20 lg:py-24 bg-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center text-gray-900 mb-4">
@@ -339,7 +256,6 @@ export default function BrowseFutsal() {
                     <p className="text-lg md:text-xl text-gray-600 text-center max-w-3xl mx-auto mb-12 md:mb-16">
                         Experience seamless booking with features designed for players
                     </p>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                         {playerBenefits.map((benefit, index) => (
                             <BenefitCard key={index} benefit={benefit} />
@@ -347,7 +263,6 @@ export default function BrowseFutsal() {
                     </div>
                 </div>
             </section>
-
         </div>
     );
 }

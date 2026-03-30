@@ -1,5 +1,6 @@
 from django.urls import path
 from futsal.views import ReviewCreateView, ReviewUpdateDeleteView, CourtReviewListView
+from futsal.views import CourtImageUploadView  
 from futsal.views import (
     CourtListView, CourtCreateView, CourtDetailView, OwnerCourtListView,
     TimeSlotCreateView, TimeSlotDetailView, CourtTimeSlotsView,
@@ -13,6 +14,7 @@ urlpatterns = [
     path('courts/create/', CourtCreateView.as_view(), name='court-create'),    # Owner
     path('courts/mine/', OwnerCourtListView.as_view(), name='court-mine'),     # Owner
     path('courts/<int:pk>/', CourtDetailView.as_view(), name='court-detail'),  # Owner
+    path('courts/<int:court_id>/images/', CourtImageUploadView.as_view(), name='court-images'),
 
     # ── Time Slots ───────────────────────────────
     path('courts/<int:court_id>/slots/', CourtTimeSlotsView.as_view(), name='court-slots'),           # Public

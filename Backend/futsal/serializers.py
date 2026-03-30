@@ -30,7 +30,7 @@ class FutsalCourtSerializer(serializers.ModelSerializer):
 class FutsalCourtCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = FutsalCourt
-        fields = ['id', 'name', 'address', 'description', 'price_per_hour', 'is_active']
+        fields = ['id', 'name', 'address', 'description', 'price_per_hour', 'is_active', 'image']
 
     def create(self, validated_data):
         owner = self.context['request'].user
@@ -153,12 +153,13 @@ class FutsalCourtSerializer(serializers.ModelSerializer):
     owner_email = serializers.EmailField(source='owner.email', read_only=True)
     average_rating = serializers.FloatField(read_only=True)
     total_reviews = serializers.IntegerField(read_only=True)
- 
+    image = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model = FutsalCourt
         fields = [
             'id', 'name', 'address', 'description',
-            'price_per_hour', 'is_active', 'owner_email',
+            'price_per_hour', 'is_active', 'owner_email','image',
             'time_slots', 'average_rating', 'total_reviews',
             'created_at', 'updated_at'
         ]

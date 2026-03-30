@@ -19,7 +19,7 @@ from futsal.serializers import (
 from futsal.permissions import IsOwner, IsOwnerOfCourt
 from PitchPal.utils import api_response
 
- 
+from rest_framework.parsers import MultiPartParser, FormParser
 from futsal.models import Review
 from futsal.serializers import ReviewSerializer
 # ─────────────────────────────────────────────
@@ -52,6 +52,7 @@ class CourtCreateView(APIView):
     """Owner only: create a new court."""
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, IsOwner]
+    parser_classes = [MultiPartParser, FormParser]
 
     @swagger_auto_schema(
         operation_description="Create a new futsal court (owner only).",
@@ -77,6 +78,7 @@ class CourtDetailView(APIView):
     """Owner only: retrieve, update, delete own court."""
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, IsOwner]
+    parser_classes = [MultiPartParser, FormParser] 
 
     def get_object(self, pk, user):
         try:
@@ -129,7 +131,73 @@ class OwnerCourtListView(APIView):
         serializer = FutsalCourtSerializer(courts, many=True)
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
 
+# ─────────────────────────────────────────────
+# COURT IMAGE VIEWS
+# ─────────────────────────────────────────────
 
+from futsal.models import CourtImage
+
+class CourtImageUploadView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, IsOwner]
+    parser_classes = [MultiPartParser, FormParser]
+
+    @swagger_auto_schema(operation_description="Upload up to 4 photos for a court.", tags=["Courts"])
+    def post(self, request, court_id):
+        try:
+            court = FutsalCourt.objects.get(pk=court_id, owner=request.user)
+        except FutsalCourt.DoesNotExist:
+            return api_response(is_success=False, error_message="Court not found.", status_code=404)
+
+        images = request.FILES.getlist('images')
+        if not images:
+            return api_response(is_success=False, error_message="No images provided.", status_code=400)
+
+        existing_count = court.gallery.count()
+        remaining = 4 - existing_count
+
+        if remaining <= 0:
+            return api_response(
+                is_success=False,
+                error_message="Maximum 4 photos allowed. Delete some before uploading new ones.",
+                status_code=400
+            )
+
+        if len(images) > remaining:
+            return api_response(
+                is_success=False,
+                error_message=f"You can only upload {remaining} more photo(s). Court already has {existing_count}/4.",
+                status_code=400
+            )
+
+        created = []
+        for img in images:
+            obj = CourtImage.objects.create(court=court, image=img)
+            created.append({"id": obj.id, "image": request.build_absolute_uri(obj.image.url)})
+
+        return api_response(is_success=True, result=created, status_code=201)
+
+    @swagger_auto_schema(operation_description="Delete a court photo.", tags=["Courts"])
+    def delete(self, request, court_id):
+        try:
+            court = FutsalCourt.objects.get(pk=court_id, owner=request.user)
+        except FutsalCourt.DoesNotExist:
+            return api_response(is_success=False, error_message="Court not found.", status_code=404)
+
+        image_id = request.data.get('image_id')
+        if not image_id:
+            return api_response(is_success=False, error_message="image_id is required.", status_code=400)
+
+        try:
+            image = CourtImage.objects.get(pk=image_id, court=court)
+        except CourtImage.DoesNotExist:
+            return api_response(is_success=False, error_message="Image not found.", status_code=404)
+
+        image.image.delete(save=False)
+        image.delete()
+        return api_response(is_success=True, result={"message": "Image deleted."}, status_code=200)
+    
+    
 # ─────────────────────────────────────────────
 # TIME SLOT VIEWS
 # ─────────────────────────────────────────────
