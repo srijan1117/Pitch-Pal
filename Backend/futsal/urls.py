@@ -1,6 +1,7 @@
 from django.urls import path
 from futsal.views import ReviewCreateView, ReviewUpdateDeleteView, CourtReviewListView
 from futsal.views import CourtImageUploadView  
+from futsal.views import WeeklyBookingCreateView, WeeklyBookingListView, WeeklyBookingCancelView
 from futsal.views import (
     CourtListView, CourtCreateView, CourtDetailView, OwnerCourtListView,
     TimeSlotCreateView, TimeSlotDetailView, CourtTimeSlotsView,
@@ -26,7 +27,9 @@ urlpatterns = [
     path('bookings/create/', BookingCreateView.as_view(), name='booking-create'),   # User
     path('bookings/<int:booking_id>/cancel/', BookingCancelView.as_view(), name='booking-cancel'),  # User
     path('bookings/owner/', OwnerBookingListView.as_view(), name='owner-bookings'), # Owner
-
+    path('bookings/weekly/', WeeklyBookingListView.as_view(), name='weekly-booking-list'),
+    path('bookings/weekly/create/', WeeklyBookingCreateView.as_view(), name='weekly-booking-create'),
+    path('bookings/weekly/<int:booking_id>/cancel/', WeeklyBookingCancelView.as_view(), name='weekly-booking-cancel'),
 
     # ── Review ─────────────────────────────────
     path('reviews/create/', ReviewCreateView.as_view(), name='review-create'),

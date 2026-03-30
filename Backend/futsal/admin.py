@@ -1,6 +1,6 @@
 from django.contrib import admin
 from futsal.models import FutsalCourt, TimeSlot, Booking, Payment
-
+from futsal.models import WeeklyBooking
 
 @admin.register(FutsalCourt)
 class FutsalCourtAdmin(admin.ModelAdmin):
@@ -26,3 +26,9 @@ class BookingAdmin(admin.ModelAdmin):
 class PaymentAdmin(admin.ModelAdmin):
     list_display = ['id', 'booking', 'amount', 'payment_method', 'status', 'paid_at']
     list_filter = ['status', 'payment_method']
+
+
+@admin.register(WeeklyBooking)
+class WeeklyBookingAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'court', 'time_slot', 'start_date', 'is_active']
+    list_filter = ['is_active']

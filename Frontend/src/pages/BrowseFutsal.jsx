@@ -116,7 +116,6 @@ export default function BrowseFutsal() {
 
     useEffect(() => {
         fetchCourts({ search: "", location: "", time: "", sort: "recommended" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const onSearchSubmit = (e) => {

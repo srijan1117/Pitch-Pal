@@ -1,39 +1,99 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import LogoutConfirmationModal from "../components/LogoutConfirmationModal";
-import { LogOut, Home, Calendar, LayoutDashboard, Clock, DollarSign, Menu, X } from "lucide-react";
+import { LogOut, Home, Calendar, LayoutDashboard, Clock, DollarSign, Menu, X, Loader2 } from "lucide-react";
 import { clearSession } from "../api/auth";
+import api from "../api/axios";
 
 export default function OwnerDashboard() {
   const navigate = useNavigate();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const [courts, setCourts] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const [courtsRes, bookingsRes] = await Promise.all([
+          api.get("/futsal/courts/mine/"),
+          api.get("/futsal/bookings/owner/")
+        ]);
+
+        if (courtsRes.data.is_success) {
+          setCourts(courtsRes.data.Result);
+        }
+        if (bookingsRes.data.is_success) {
+          setBookings(bookingsRes.data.Result);
+        }
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        setError("Failed to load dashboard data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
   const handleLogout = () => {
     clearSession();
     navigate("/login");
   };
 
+  // Calculate dynamic stats
+  const totalCourts = courts.length;
+  const today = new Date().toISOString().split('T')[0];
+  const todaysBookings = bookings.filter(b => b.booking_date === today).length;
+  const pendingRequests = bookings.filter(b => b.status === "Pending").length;
+  
+  // Calculate monthly revenue (simple sum of all successful bookings for now)
+  const totalRevenue = bookings
+    .filter(b => b.status === "Confirmed" || b.status === "Completed")
+    .reduce((acc, curr) => acc + parseFloat(curr.total_amount), 0);
+
   const stats = [
-    { title: "Total Courts", value: "3", icon: <Home className="w-5 h-5" /> },
-    { title: "Today's Bookings", value: "8", icon: <Calendar className="w-5 h-5" /> },
-    { title: "Pending Requests", value: "2", icon: <Clock className="w-5 h-5" /> },
-    { title: "Monthly Revenue", value: "Rs. 45,000", icon: <DollarSign className="w-5 h-5" /> },
+    { title: "Total Courts", value: totalCourts.toString(), icon: <Home className="w-5 h-5" /> },
+    { title: "Today's Bookings", value: todaysBookings.toString(), icon: <Calendar className="w-5 h-5" /> },
+    { title: "Pending Requests", value: pendingRequests.toString(), icon: <Clock className="w-5 h-5" /> },
+    { title: "Total Revenue", value: `Rs. ${totalRevenue.toLocaleString()}`, icon: <DollarSign className="w-5 h-5" /> },
   ];
 
-  const recentBookings = [
-    { id: 1, court: "Court A", player: "John Doe", date: "2023-11-01", time: "18:00 - 19:00", status: "Confirmed" },
-    { id: 2, court: "Court B", player: "Jane Smith", date: "2023-11-01", time: "19:00 - 20:00", status: "Pending" },
-    { id: 3, court: "Court A", player: "Mike Johnson", date: "2023-11-02", time: "17:00 - 18:00", status: "Confirmed" },
-    { id: 4, court: "Court C", player: "Emily Davis", date: "2023-11-02", time: "18:00 - 19:00", status: "Cancelled" },
-    { id: 5, court: "Court B", player: "Chris Wilson", date: "2023-11-03", time: "20:00 - 21:00", status: "Confirmed" },
-  ];
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+          <p className="text-gray-500 font-medium">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const myCourts = [
-    { id: 1, name: "Court A (Standard)", price: "Rs. 1,000 / hr", active: true },
-    { id: 2, name: "Court B (Premium)", price: "Rs. 1,500 / hr", active: true },
-    { id: 3, name: "Court C (Indoor)", price: "Rs. 1,200 / hr", active: false },
-  ];
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="bg-white p-8 rounded-xl shadow-md border border-red-100 text-center max-w-md">
+          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <X className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Error Uploading Data</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-100 font-sans">
@@ -123,12 +183,12 @@ export default function OwnerDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-sm">
-                    {recentBookings.map((bk) => (
+                    {bookings.slice(0, 10).map((bk) => (
                       <tr key={bk.id} className="hover:bg-gray-50 transition">
-                        <td className="px-6 py-4 text-gray-800 font-medium">{bk.court}</td>
-                        <td className="px-6 py-4 text-gray-600">{bk.player}</td>
-                        <td className="px-6 py-4 text-gray-600">{bk.date}</td>
-                        <td className="px-6 py-4 text-gray-600">{bk.time}</td>
+                        <td className="px-6 py-4 text-gray-800 font-medium">{bk.court_name}</td>
+                        <td className="px-6 py-4 text-gray-600">{bk.user_email}</td>
+                        <td className="px-6 py-4 text-gray-600">{bk.booking_date}</td>
+                        <td className="px-6 py-4 text-gray-600">{bk.time_slot_detail.start_time} - {bk.time_slot_detail.end_time}</td>
                         <td className="px-6 py-4">
                           <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                             bk.status === "Confirmed" ? "bg-green-100 text-green-700" :
@@ -149,17 +209,17 @@ export default function OwnerDashboard() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h2 className="text-lg font-bold text-gray-800 mb-6">My Courts</h2>
               <div className="space-y-4">
-                {myCourts.map((court) => (
+                 {courts.map((court) => (
                   <div key={court.id} className="p-4 rounded-xl border border-gray-100 hover:shadow-md transition bg-gray-50">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-semibold text-gray-800">{court.name}</h3>
                       <span className={`px-2 py-1 text-xs font-bold rounded-md ${
-                        court.active ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-600"
+                        court.is_active ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-600"
                       }`}>
-                        {court.active ? "Active" : "Inactive"}
+                        {court.is_active ? "Active" : "Inactive"}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-500">{court.price}</p>
+                    <p className="text-sm text-gray-500">Rs. {parseFloat(court.price_per_hour).toLocaleString()} / hr</p>
                   </div>
                 ))}
               </div>

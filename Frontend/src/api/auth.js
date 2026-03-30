@@ -30,8 +30,8 @@ export function clearSession() {
 export function isSessionExpired() {
   const loginTime = localStorage.getItem("login_time");
   if (!loginTime) return true;
-  const oneHour = 60 * 60 * 1000;
-  return Date.now() - parseInt(loginTime, 10) > oneHour;
+  const twoHours = 2 * 60 * 60 * 1000;
+  return Date.now() - parseInt(loginTime, 10) > twoHours;
 }
 
 export function isLoggedIn() {

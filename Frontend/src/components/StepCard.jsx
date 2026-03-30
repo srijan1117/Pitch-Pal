@@ -1,4 +1,4 @@
-export function StepCard({ step, index }) {
+export function StepCard({ step }) {
   return (
     <div className="relative">
       {/* Step Number Badge */}

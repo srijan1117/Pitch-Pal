@@ -1,10 +1,21 @@
+import { useEffect, useState } from "react";
 import { FutsalCard } from "./FutsalCard";
-import futsalsData from "../data/futsals.json";
+import api from "../api/axios";
 
 export function FeaturedFutsals({ excludeId, title = "Featured Futsal", limit = 3 }) {
-  const featured = futsalsData
-    .filter((f) => f.id !== excludeId)
-    .slice(0, limit);
+  const [courts, setCourts] = useState([]);
+
+  useEffect(() => {
+    api.get("/futsal/courts/")
+      .then(res => {
+        const data = res.data?.Result || [];
+        const filtered = data.filter(c => c.id !== excludeId).slice(0, limit);
+        setCourts(filtered);
+      })
+      .catch(() => setCourts([]));
+  }, [excludeId, limit]);
+
+  if (!courts.length) return null;
 
   return (
     <section className="py-12 bg-white">
@@ -12,9 +23,8 @@ export function FeaturedFutsals({ excludeId, title = "Featured Futsal", limit = 
         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8 md:mb-12">
           {title}
         </h2>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-          {featured.map((court) => (
+          {courts.map((court) => (
             <FutsalCard key={court.id} court={court} />
           ))}
         </div>

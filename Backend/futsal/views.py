@@ -22,6 +22,9 @@ from PitchPal.utils import api_response
 from rest_framework.parsers import MultiPartParser, FormParser
 from futsal.models import Review
 from futsal.serializers import ReviewSerializer
+from futsal.models import WeeklyBooking
+from futsal.serializers import WeeklyBookingSerializer
+
 # ─────────────────────────────────────────────
 # COURT VIEWS
 # ─────────────────────────────────────────────
@@ -197,7 +200,7 @@ class CourtImageUploadView(APIView):
         image.delete()
         return api_response(is_success=True, result={"message": "Image deleted."}, status_code=200)
     
-    
+
 # ─────────────────────────────────────────────
 # TIME SLOT VIEWS
 # ─────────────────────────────────────────────
@@ -441,7 +444,52 @@ class CourtReviewListView(APIView):
             },
             status_code=status.HTTP_200_OK
         )
+class WeeklyBookingCreateView(APIView):
+    """User: create a weekly recurring booking."""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_description="Create a weekly recurring booking.",
+        request_body=WeeklyBookingSerializer,
+        tags=["Bookings"]
+    )
+    def post(self, request):
+        serializer = WeeklyBookingSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            weekly = serializer.save()
+            return api_response(is_success=True, result=WeeklyBookingSerializer(weekly).data, status_code=status.HTTP_201_CREATED)
+        return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+
+
+class WeeklyBookingListView(APIView):
+    """User: list their weekly bookings."""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(operation_description="List all weekly bookings for the logged-in user.", tags=["Bookings"])
+    def get(self, request):
+        bookings = WeeklyBooking.objects.filter(user=request.user, is_active=True).select_related('court', 'time_slot')
+        serializer = WeeklyBookingSerializer(bookings, many=True)
+        return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
+
+
+class WeeklyBookingCancelView(APIView):
+    """User: cancel a weekly booking."""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(operation_description="Cancel a weekly booking.", tags=["Bookings"])
+    def patch(self, request, booking_id):
+        try:
+            booking = WeeklyBooking.objects.get(pk=booking_id, user=request.user)
+        except WeeklyBooking.DoesNotExist:
+            return api_response(is_success=False, error_message="Weekly booking not found.", status_code=status.HTTP_404_NOT_FOUND)
+        booking.is_active = False
+        booking.save()
+        return api_response(is_success=True, result={"message": "Weekly booking cancelled."}, status_code=status.HTTP_200_OK)
+    
+    
 # ─────────────────────────────────────────────
 # PAYMENT VIEWS (Khalti)
 # ─────────────────────────────────────────────

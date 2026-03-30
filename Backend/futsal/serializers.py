@@ -1,11 +1,11 @@
 from rest_framework import serializers
-from futsal.models import FutsalCourt, TimeSlot, Booking, Payment, BookingStatusEnum
+from futsal.models import FutsalCourt, TimeSlot, Booking, Payment, BookingStatusEnum, CourtImage, WeeklyBooking
 from futsal.models import Review
 
 class TimeSlotSerializer(serializers.ModelSerializer):
     class Meta:
         model = TimeSlot
-        fields = ['id', 'start_time', 'end_time', 'is_available']
+        fields = ['id', 'start_time', 'end_time', 'is_available', 'price']
 
     def validate(self, data):
         if data['start_time'] >= data['end_time']:
@@ -16,21 +16,29 @@ class TimeSlotSerializer(serializers.ModelSerializer):
 class FutsalCourtSerializer(serializers.ModelSerializer):
     time_slots = TimeSlotSerializer(many=True, read_only=True)
     owner_email = serializers.EmailField(source='owner.email', read_only=True)
+    average_rating = serializers.FloatField(read_only=True)
+    total_reviews = serializers.IntegerField(read_only=True)
+    image = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = FutsalCourt
         fields = [
             'id', 'name', 'address', 'description',
             'price_per_hour', 'is_active', 'owner_email',
-            'time_slots', 'created_at', 'updated_at'
+            'image', 'gallery', 'amenities',
+            'time_slots', 'average_rating', 'total_reviews',
+            'created_at', 'updated_at'
         ]
-        read_only_fields = ['owner_email', 'created_at', 'updated_at']
+        read_only_fields = ['owner_email', 'average_rating', 'total_reviews', 'created_at', 'updated_at']
 
-
+class CourtImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CourtImage
+        fields = ['id', 'image', 'uploaded_at']
 class FutsalCourtCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = FutsalCourt
-        fields = ['id', 'name', 'address', 'description', 'price_per_hour', 'is_active', 'image']
+        fields = ['id', 'name', 'address', 'description', 'price_per_hour', 'is_active', 'image', 'amenities']
 
     def create(self, validated_data):
         owner = self.context['request'].user
@@ -165,6 +173,28 @@ class FutsalCourtSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['owner_email', 'average_rating', 'total_reviews', 'created_at', 'updated_at']
  
+class WeeklyBookingSerializer(serializers.ModelSerializer):
+    court_name = serializers.CharField(source='court.name', read_only=True)
+    time_slot_detail = TimeSlotSerializer(source='time_slot', read_only=True)
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+
+    class Meta:
+        model = WeeklyBooking
+        fields = ['id', 'user_email', 'court', 'court_name', 'time_slot', 'time_slot_detail', 'start_date', 'end_date', 'is_active', 'created_at']
+        read_only_fields = ['user_email', 'created_at']
+
+    def validate(self, data):
+        from django.utils import timezone
+        today = timezone.localdate()
+        if data['start_date'] < today:
+            raise serializers.ValidationError({'start_date': 'Start date cannot be in the past.'})
+        if data.get('end_date') and data['end_date'] < data['start_date']:
+            raise serializers.ValidationError({'end_date': 'End date must be after start date.'})
+        return data
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return WeeklyBooking.objects.create(user=user, **validated_data) 
 
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:

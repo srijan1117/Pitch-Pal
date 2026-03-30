@@ -12,8 +12,8 @@ export default function Login() {
   useEffect(() => {
     if (!isSessionExpired() && localStorage.getItem("access_token")) {
       const role = localStorage.getItem("role");
-      if (role === "owner") navigate("/owner-dashboard");
-      else if (role === "admin" || role === "superuser") navigate("/admin-dashboard");
+      if (role === "owner") navigate("/owner/dashboard");
+      else if (role === "admin" || role === "superuser") navigate("/admin/dashboard");
       else navigate("/home");
     } else {
       clearSession();
@@ -32,9 +32,9 @@ export default function Login() {
     try {
       const data = await loginUser(form);
       if (data?.role === "owner") {
-        navigate("/owner-dashboard");
+        navigate("/owner/dashboard");
       } else if (data?.role === "admin" || data?.role === "superuser") {
-        navigate("/admin-dashboard");
+        navigate("/admin/dashboard");
       } else {
         navigate("/home");
       }
