@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from accounts.models import User
 
 
+
 class FutsalCourt(models.Model):
     owner = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='courts',
@@ -153,3 +154,53 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review by {self.user.email} for {self.court.name} - {self.rating}star"
+    
+
+class TournamentStateEnum(models.TextChoices):
+    UPCOMING = 'upcoming', 'Upcoming'
+    ONGOING = 'ongoing', 'Ongoing'
+    HISTORY = 'history', 'History'
+
+class TournamentStatusEnum(models.TextChoices):
+    OPEN = 'Registration Open', 'Registration Open'
+    CLOSED = 'Registration Closed', 'Registration Closed'
+    COMPLETED = 'Completed', 'Completed'
+
+class Tournament(models.Model):
+    title = models.CharField(max_length=200)
+    organizer = models.CharField(max_length=200)
+    location = models.CharField(max_length=255)
+    date = models.CharField(max_length=100)
+    prize_pool = models.CharField(max_length=100)
+    entry_fee = models.CharField(max_length=100)
+    team_limit = models.PositiveIntegerField()
+    format = models.CharField(max_length=100)
+    description = models.TextField()
+    rules = models.JSONField(default=list)
+    image = models.ImageField(upload_to='tournaments/', blank=True, null=True)
+    status = models.CharField(max_length=50, choices=TournamentStatusEnum.choices, default=TournamentStatusEnum.OPEN)
+    state = models.CharField(max_length=20, choices=TournamentStateEnum.choices, default=TournamentStateEnum.UPCOMING)
+    contact_phone = models.CharField(max_length=20, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def registered_teams(self):
+        return self.registrations.count()
+
+
+class TournamentRegistration(models.Model):
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='registrations')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tournament_registrations')
+    team_name = models.CharField(max_length=100)
+    contact_phone = models.CharField(max_length=20)
+    player_names = models.JSONField(default=list)
+    registered_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('tournament', 'user')
+
+    def __str__(self):
+        return f"{self.team_name} - {self.tournament.title}"
