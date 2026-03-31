@@ -12,37 +12,39 @@ import TournamentDetail from "./pages/TournamentDetail";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 
-
 export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Public routes (NO navbar) */}
-        <Route path="/" element={<Navigate to="/home" />} />
+        {/* Auth routes — NO navbar */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/home" element={<Home />} />
 
         {/* Legacy redirects */}
+        <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/owner-dashboard" element={<Navigate to="/owner/dashboard" replace />} />
         <Route path="/admin-dashboard" element={<Navigate to="/admin/dashboard" replace />} />
 
-        {/* Protected routes (WITH navbar) */}
-        <Route
-          element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }
-        >
+        {/* Public + User routes — WITH navbar */}
+        <Route element={<MainLayout />}>
+          <Route path="/home" element={<Home />} />
           <Route path="/browse" element={<BrowseFutsal />} />
           <Route path="/browse/:id" element={<FutsalDetail />} />
-          <Route path="/bookings" element={<Bookings />} />
           <Route path="/tournaments" element={<Tournaments />} />
           <Route path="/tournaments/:id" element={<TournamentDetail />} />
+
+          {/* Bookings — requires login */}
+          <Route
+            path="/bookings"
+            element={
+              <ProtectedRoute allowedRoles={["user"]}>
+                <Bookings />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
-        {/* Standalone Dashboard routes (NO global navbar) */}
+        {/* Owner Dashboard — NO global navbar, own layout */}
         <Route
           path="/owner/dashboard"
           element={
@@ -51,6 +53,8 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Admin Dashboard — NO global navbar, own layout */}
         <Route
           path="/admin/dashboard"
           element={

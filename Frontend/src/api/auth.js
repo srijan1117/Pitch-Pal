@@ -8,7 +8,10 @@ export async function loginUser(payload) {
 
   if (!data?.access_token) {
     throw new Error("No access token returned");
-  }
+
+  if (data.email) {
+  localStorage.setItem("email", data.email);  
+  }}
 
   localStorage.setItem("access_token", data.access_token);
   localStorage.setItem("refresh_token", data.refresh_token);

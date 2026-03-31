@@ -45,7 +45,7 @@ class CourtListView(generics.ListAPIView):
     def get(self, request, *args, **kwargs):
         try:
             qs = self.get_queryset()
-            serializer = self.get_serializer(qs, many=True)
+            serializer = FutsalCourtSerializer(qs, many=True, context={'request': request})
             return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
         except Exception as e:
             return api_response(is_success=False, error_message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

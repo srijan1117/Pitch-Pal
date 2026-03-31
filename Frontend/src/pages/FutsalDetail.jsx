@@ -19,6 +19,7 @@ export default function FutsalDetail() {
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedSlot, setSelectedSlot] = useState("");
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [booking, setBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState("");
   const [bookingError, setBookingError] = useState("");
@@ -30,9 +31,7 @@ export default function FutsalDetail() {
     return d;
   });
 
-  const formatDate = (date) => {
-    return date.toISOString().split("T")[0]; // YYYY-MM-DD
-  };
+  const formatDate = (date) => date.toISOString().split("T")[0];
 
   // ── Fetch court details ───────────────────────────────────────────────
   useEffect(() => {
@@ -42,11 +41,8 @@ export default function FutsalDetail() {
         const res = await api.get("/futsal/courts/");
         const data = res.data?.Result || [];
         const found = data.find(c => c.id === parseInt(id));
-        if (!found) {
-          setError("Court not found.");
-        } else {
-          setCourt(found);
-        }
+        if (!found) setError("Court not found.");
+        else setCourt(found);
       } catch {
         setError("Failed to load court details.");
       } finally {
@@ -59,18 +55,11 @@ export default function FutsalDetail() {
   // ── Fetch available slots when date changes ───────────────────────────
   useEffect(() => {
     if (!id) return;
-    const fetchSlots = async () => {
-      try {
-        const res = await api.get(`/futsal/courts/${id}/slots/`, {
-          params: { date: formatDate(selectedDate) }
-        });
-        setSlots(res.data?.Result || []);
-        setSelectedSlot("");
-      } catch {
-        setSlots([]);
-      }
-    };
-    fetchSlots();
+    api.get(`/futsal/courts/${id}/slots/`, {
+      params: { date: formatDate(selectedDate) }
+    })
+      .then(res => { setSlots(res.data?.Result || []); setSelectedSlot(""); })
+      .catch(() => setSlots([]));
   }, [id, selectedDate]);
 
   // ── Fetch reviews ─────────────────────────────────────────────────────
@@ -83,27 +72,35 @@ export default function FutsalDetail() {
 
   // ── Handle booking ────────────────────────────────────────────────────
   const handleBooking = async () => {
-    if (!isLoggedIn()) {
-      navigate("/login");
-      return;
-    }
-    if (!selectedSlot) {
-      setBookingError("Please select a time slot.");
-      return;
-    }
+    if (!isLoggedIn()) { navigate("/login"); return; }
+    if (!selectedSlot) { setBookingError("Please select a time slot."); return; }
 
     setBooking(true);
     setBookingError("");
     setBookingSuccess("");
 
     try {
-      await api.post("/futsal/bookings/create/", {
-        court: parseInt(id),
-        time_slot: parseInt(selectedSlot),
-        booking_date: formatDate(selectedDate),
-      });
-      setBookingSuccess("Booking confirmed! Check your bookings page.");
+      if (repeatWeekly) {
+        // Create weekly booking
+        await api.post("/futsal/bookings/weekly/create/", {
+          court: parseInt(id),
+          time_slot: parseInt(selectedSlot),
+          start_date: formatDate(selectedDate),
+        });
+        setBookingSuccess("Weekly booking confirmed! This slot will repeat every week.");
+      } else {
+        // Create single booking
+        await api.post("/futsal/bookings/create/", {
+          court: parseInt(id),
+          time_slot: parseInt(selectedSlot),
+          booking_date: formatDate(selectedDate),
+        });
+        setBookingSuccess("Booking confirmed! Check your bookings page.");
+      }
+
       setSelectedSlot("");
+      setRepeatWeekly(false);
+
       // Refresh slots
       const res = await api.get(`/futsal/courts/${id}/slots/`, {
         params: { date: formatDate(selectedDate) }
@@ -140,15 +137,16 @@ export default function FutsalDetail() {
   const galleryImages = court.gallery?.map(g => g.image) || [];
   const allImages = court.image ? [court.image, ...galleryImages] : galleryImages;
 
+  // Find selected slot object for price display
+  const selectedSlotObj = slots.find(s => s.id.toString() === selectedSlot);
+  const slotPrice = selectedSlotObj?.price || court.price_per_hour;
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
 
       {/* BACK BUTTON MOBILE */}
       <div className="block md:hidden p-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
-        >
+        <button onClick={() => navigate(-1)} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
           ← Back
         </button>
       </div>
@@ -184,10 +182,7 @@ export default function FutsalDetail() {
               <div className="flex items-center gap-2 mt-2">
                 <div className="flex">
                   {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-5 h-5 ${i < rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-300 text-gray-300"}`}
-                    />
+                    <Star key={i} className={`w-5 h-5 ${i < rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-300 text-gray-300"}`} />
                   ))}
                 </div>
                 <span className="text-sm text-gray-500">
@@ -203,15 +198,36 @@ export default function FutsalDetail() {
 
             <div className="text-left lg:text-right">
               <p className="text-2xl md:text-3xl font-bold text-green-600">
-                Rs {court.price_per_hour}
+                Rs {slotPrice || court.price_per_hour}
                 <span className="text-base text-gray-500 font-medium"> /Hour</span>
               </p>
+              <button
+                onClick={handleBooking}
+                disabled={booking || !selectedSlot}
+                className="mt-3 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {booking ? "Booking..." : "Book now"}
+              </button>
             </div>
           </div>
 
           {/* DESCRIPTION */}
           {court.description && (
             <p className="text-gray-600 max-w-3xl mb-10">{court.description}</p>
+          )}
+
+          {/* AMENITIES */}
+          {court.amenities?.length > 0 && (
+            <div className="mb-10">
+              <h2 className="text-xl font-semibold mb-3">Facilities & Features</h2>
+              <div className="flex flex-wrap gap-3">
+                {court.amenities.map((a) => (
+                  <span key={a} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm">
+                    {a}
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* BOOKING SECTION */}
@@ -235,12 +251,8 @@ export default function FutsalDetail() {
                         : "bg-white hover:bg-gray-100 border-gray-200"
                     }`}
                   >
-                    <div className="text-sm">
-                      {day.toLocaleDateString("en-US", { weekday: "short" })}
-                    </div>
-                    <div className="font-semibold">
-                      {day.toLocaleDateString("en-US", { day: "numeric", month: "short" })}
-                    </div>
+                    <div className="text-sm">{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
+                    <div className="font-semibold">{day.toLocaleDateString("en-US", { day: "numeric", month: "short" })}</div>
                   </button>
                 ))}
               </div>
@@ -250,7 +262,7 @@ export default function FutsalDetail() {
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <Clock className="w-5 h-5 text-green-600" />
-                <h3 className="font-medium text-gray-700">Available Slots</h3>
+                <h3 className="font-medium text-gray-700">Select Time</h3>
               </div>
 
               {slots.length === 0 ? (
@@ -270,22 +282,42 @@ export default function FutsalDetail() {
                       }`}
                     >
                       {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
+                      {slot.price && <span className="ml-2 text-xs opacity-80">Rs {slot.price}</span>}
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
+            {/* WEEKLY BOOKING */}
+            <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+              <h3 className="text-base font-semibold mb-1">Book Throughout the Week</h3>
+              <p className="text-gray-500 text-sm mb-3">Reserve the same slot every week.</p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="repeatWeekly"
+                  checked={repeatWeekly}
+                  onChange={(e) => setRepeatWeekly(e.target.checked)}
+                  className="w-5 h-5 accent-green-600"
+                />
+                <label htmlFor="repeatWeekly" className="text-gray-700 cursor-pointer">
+                  Repeat this booking every week
+                </label>
+              </div>
+              {repeatWeekly && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Example: If you select Monday 7AM, it will repeat every Monday.
+                </p>
+              )}
+            </div>
+
             {/* BOOKING FEEDBACK */}
             {bookingSuccess && (
-              <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm">
-                {bookingSuccess}
-              </div>
+              <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm">{bookingSuccess}</div>
             )}
             {bookingError && (
-              <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-                {bookingError}
-              </div>
+              <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">{bookingError}</div>
             )}
 
             {/* CONFIRM BUTTON */}
@@ -294,7 +326,7 @@ export default function FutsalDetail() {
               disabled={booking || !selectedSlot}
               className="w-full md:w-auto px-8 py-3 bg-green-700 text-white rounded-lg hover:bg-green-800 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
             >
-              {booking ? "Booking..." : "Confirm Booking"}
+              {booking ? "Booking..." : repeatWeekly ? "Confirm Weekly Booking" : "Confirm Booking"}
             </button>
           </div>
 
@@ -303,7 +335,6 @@ export default function FutsalDetail() {
             <h2 className="text-xl font-semibold mb-4">
               Reviews {reviews.length > 0 && `(${reviews.length})`}
             </h2>
-
             {reviews.length === 0 ? (
               <p className="text-gray-500 text-sm">No reviews yet for this court.</p>
             ) : (
@@ -314,19 +345,12 @@ export default function FutsalDetail() {
                       <span className="font-medium text-gray-800">{review.user_email}</span>
                       <div className="flex">
                         {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-300 text-gray-300"}`}
-                          />
+                          <Star key={i} className={`w-4 h-4 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-300 text-gray-300"}`} />
                         ))}
                       </div>
                     </div>
-                    {review.comment && (
-                      <p className="text-gray-600 text-sm">{review.comment}</p>
-                    )}
-                    <p className="text-xs text-gray-400 mt-2">
-                      {new Date(review.created_at).toLocaleDateString()}
-                    </p>
+                    {review.comment && <p className="text-gray-600 text-sm">{review.comment}</p>}
+                    <p className="text-xs text-gray-400 mt-2">{new Date(review.created_at).toLocaleDateString()}</p>
                   </div>
                 ))}
               </div>
@@ -340,7 +364,6 @@ export default function FutsalDetail() {
 
         </div>
       </main>
-
       <Footer />
     </div>
   );

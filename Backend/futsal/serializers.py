@@ -1,6 +1,9 @@
 from rest_framework import serializers
-from futsal.models import FutsalCourt, TimeSlot, Booking, Payment, BookingStatusEnum, CourtImage, WeeklyBooking
-from futsal.models import Review
+from futsal.models import (
+    FutsalCourt, TimeSlot, Booking, Payment,
+    BookingStatusEnum, CourtImage, WeeklyBooking, Review
+)
+
 
 class TimeSlotSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,12 +16,29 @@ class TimeSlotSerializer(serializers.ModelSerializer):
         return data
 
 
+class CourtImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CourtImage
+        fields = ['id', 'image', 'uploaded_at']
+
+    def get_image(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+
+
 class FutsalCourtSerializer(serializers.ModelSerializer):
     time_slots = TimeSlotSerializer(many=True, read_only=True)
     owner_email = serializers.EmailField(source='owner.email', read_only=True)
     average_rating = serializers.FloatField(read_only=True)
     total_reviews = serializers.IntegerField(read_only=True)
-    image = serializers.ImageField(required=False, allow_null=True)
+    image = serializers.SerializerMethodField()
+    gallery = CourtImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = FutsalCourt
@@ -31,10 +51,15 @@ class FutsalCourtSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['owner_email', 'average_rating', 'total_reviews', 'created_at', 'updated_at']
 
-class CourtImageSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CourtImage
-        fields = ['id', 'image', 'uploaded_at']
+    def get_image(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+
+
 class FutsalCourtCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = FutsalCourt
@@ -108,71 +133,47 @@ class BookingSerializer(serializers.ModelSerializer):
         )
         return booking
 
- 
+
 class ReviewSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source='user.email', read_only=True)
     court_name = serializers.CharField(source='court.name', read_only=True)
- 
+
     class Meta:
         model = Review
         fields = ['id', 'user_email', 'court', 'court_name', 'booking', 'rating', 'comment', 'created_at', 'updated_at']
         read_only_fields = ['user_email', 'court_name', 'created_at', 'updated_at']
- 
+
     def validate(self, data):
         request = self.context['request']
         user = request.user
         booking = data.get('booking')
         court = data.get('court')
- 
-        # Check booking belongs to user
+
         if booking.user != user:
             raise serializers.ValidationError({'booking': 'This booking does not belong to you.'})
- 
-        # Check booking is completed
-        from futsal.models import BookingStatusEnum
+
         if booking.status != BookingStatusEnum.COMPLETED:
             raise serializers.ValidationError({'booking': 'You can only review after your booking is completed.'})
- 
-        # Check booking belongs to the court
+
         if booking.court != court:
             raise serializers.ValidationError({'court': 'This booking was not made for this court.'})
- 
-        # Check user hasn't already reviewed this court
+
         existing = Review.objects.filter(user=user, court=court)
         if self.instance:
             existing = existing.exclude(pk=self.instance.pk)
         if existing.exists():
             raise serializers.ValidationError({'court': 'You have already reviewed this court.'})
- 
-        # Check booking hasn't already been reviewed
+
         if hasattr(booking, 'review') and (not self.instance or self.instance.booking != booking):
             raise serializers.ValidationError({'booking': 'This booking has already been reviewed.'})
- 
+
         return data
- 
+
     def create(self, validated_data):
         user = self.context['request'].user
         return Review.objects.create(user=user, **validated_data)
- 
- 
-class FutsalCourtSerializer(serializers.ModelSerializer):
-    # UPDATE your existing FutsalCourtSerializer to include ratings
-    time_slots = TimeSlotSerializer(many=True, read_only=True)
-    owner_email = serializers.EmailField(source='owner.email', read_only=True)
-    average_rating = serializers.FloatField(read_only=True)
-    total_reviews = serializers.IntegerField(read_only=True)
-    image = serializers.ImageField(required=False, allow_null=True)
 
-    class Meta:
-        model = FutsalCourt
-        fields = [
-            'id', 'name', 'address', 'description',
-            'price_per_hour', 'is_active', 'owner_email','image',
-            'time_slots', 'average_rating', 'total_reviews',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['owner_email', 'average_rating', 'total_reviews', 'created_at', 'updated_at']
- 
+
 class WeeklyBookingSerializer(serializers.ModelSerializer):
     court_name = serializers.CharField(source='court.name', read_only=True)
     time_slot_detail = TimeSlotSerializer(source='time_slot', read_only=True)
@@ -194,7 +195,8 @@ class WeeklyBookingSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        return WeeklyBooking.objects.create(user=user, **validated_data) 
+        return WeeklyBooking.objects.create(user=user, **validated_data)
+
 
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
