@@ -24,6 +24,7 @@ from futsal.models import Review
 from futsal.serializers import ReviewSerializer
 from futsal.models import WeeklyBooking
 from futsal.serializers import WeeklyBookingSerializer
+from futsal.models import CourtImage
 
 # ─────────────────────────────────────────────
 # COURT VIEWS
@@ -138,14 +139,25 @@ class OwnerCourtListView(APIView):
 # COURT IMAGE VIEWS
 # ─────────────────────────────────────────────
 
-from futsal.models import CourtImage
-
 class CourtImageUploadView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, IsOwner]
     parser_classes = [MultiPartParser, FormParser]
 
-    @swagger_auto_schema(operation_description="Upload up to 4 photos for a court.", tags=["Courts"])
+    @swagger_auto_schema(
+        operation_description="Upload up to 4 photos for a court.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='images',
+                in_=openapi.IN_FORM,
+                type=openapi.TYPE_FILE,
+                required=True,
+                description='Upload up to 4 images'
+            )
+        ],
+        consumes=['multipart/form-data'],
+        tags=["Courts"]
+    )
     def post(self, request, court_id):
         try:
             court = FutsalCourt.objects.get(pk=court_id, owner=request.user)
@@ -180,7 +192,20 @@ class CourtImageUploadView(APIView):
 
         return api_response(is_success=True, result=created, status_code=201)
 
-    @swagger_auto_schema(operation_description="Delete a court photo.", tags=["Courts"])
+    @swagger_auto_schema(
+        operation_description="Delete a court photo.",
+        manual_parameters=[
+            openapi.Parameter(
+                name='image_id',
+                in_=openapi.IN_FORM,
+                type=openapi.TYPE_INTEGER,
+                required=True,
+                description='ID of image to delete'
+            )
+        ],
+        consumes=['multipart/form-data'],
+        tags=["Courts"]
+    )
     def delete(self, request, court_id):
         try:
             court = FutsalCourt.objects.get(pk=court_id, owner=request.user)
@@ -200,7 +225,6 @@ class CourtImageUploadView(APIView):
         image.delete()
         return api_response(is_success=True, result={"message": "Image deleted."}, status_code=200)
     
-
 # ─────────────────────────────────────────────
 # TIME SLOT VIEWS
 # ─────────────────────────────────────────────
