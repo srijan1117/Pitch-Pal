@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from futsal.models import Tournament, TournamentRegistration
 from futsal.models import (
     FutsalCourt, TimeSlot, Booking, Payment,
     BookingStatusEnum, CourtImage, WeeklyBooking, Review
@@ -196,6 +197,72 @@ class WeeklyBookingSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = self.context['request'].user
         return WeeklyBooking.objects.create(user=user, **validated_data)
+
+
+class TournamentSerializer(serializers.ModelSerializer):
+    registered_teams = serializers.IntegerField(read_only=True)
+    image = serializers.SerializerMethodField()
+ 
+    class Meta:
+        model = Tournament
+        fields = [
+            'id', 'title', 'organizer', 'location', 'date',
+            'prize_pool', 'entry_fee', 'team_limit', 'registered_teams',
+            'format', 'description', 'rules', 'image',
+            'status', 'state', 'contact_phone', 'created_at'
+        ]
+        read_only_fields = ['registered_teams', 'created_at']
+ 
+    def get_image(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+ 
+ 
+class TournamentCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tournament
+        fields = [
+            'id', 'title', 'organizer', 'location', 'date',
+            'prize_pool', 'entry_fee', 'team_limit', 'format',
+            'description', 'rules', 'image', 'status', 'state', 'contact_phone'
+        ]
+ 
+ 
+class TournamentRegistrationSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    tournament_title = serializers.CharField(source='tournament.title', read_only=True)
+ 
+    class Meta:
+        model = TournamentRegistration
+        fields = [
+            'id', 'tournament', 'tournament_title', 'user_email',
+            'team_name', 'contact_phone', 'player_names', 'registered_at'
+        ]
+        read_only_fields = ['user_email', 'tournament_title', 'registered_at']
+ 
+    def validate(self, data):
+        tournament = data.get('tournament')
+        user = self.context['request'].user
+ 
+        if tournament.status != 'Registration Open':
+            raise serializers.ValidationError({'tournament': 'Registration is closed for this tournament.'})
+ 
+        if tournament.registered_teams >= tournament.team_limit:
+            raise serializers.ValidationError({'tournament': 'This tournament is full.'})
+ 
+        existing = TournamentRegistration.objects.filter(tournament=tournament, user=user)
+        if existing.exists():
+            raise serializers.ValidationError({'tournament': 'You have already registered for this tournament.'})
+ 
+        return data
+ 
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return TournamentRegistration.objects.create(user=user, **validated_data)
 
 
 class PaymentSerializer(serializers.ModelSerializer):

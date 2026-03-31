@@ -25,6 +25,8 @@ from futsal.serializers import ReviewSerializer
 from futsal.models import WeeklyBooking
 from futsal.serializers import WeeklyBookingSerializer
 from futsal.models import CourtImage
+from futsal.models import Tournament, TournamentRegistration
+from futsal.serializers import TournamentSerializer, TournamentCreateSerializer, TournamentRegistrationSerializer
 
 # ─────────────────────────────────────────────
 # COURT VIEWS
@@ -513,7 +515,145 @@ class WeeklyBookingCancelView(APIView):
         booking.save()
         return api_response(is_success=True, result={"message": "Weekly booking cancelled."}, status_code=status.HTTP_200_OK)
     
-    
+
+# ─────────────────────────────────────────────
+# TOURNAMENT VIEWS
+# ─────────────────────────────────────────────
+ 
+class TournamentListView(APIView):
+    """Public: list all tournaments."""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+ 
+    @swagger_auto_schema(operation_description="List all tournaments.", tags=["Tournaments"])
+    def get(self, request):
+        tournaments = Tournament.objects.all().order_by('-created_at')
+        serializer = TournamentSerializer(tournaments, many=True, context={'request': request})
+        return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
+ 
+ 
+class TournamentDetailView(APIView):
+    """Public: get a single tournament."""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+ 
+    @swagger_auto_schema(operation_description="Get tournament details.", tags=["Tournaments"])
+    def get(self, request, tournament_id):
+        try:
+            tournament = Tournament.objects.get(pk=tournament_id)
+        except Tournament.DoesNotExist:
+            return api_response(is_success=False, error_message="Tournament not found.", status_code=status.HTTP_404_NOT_FOUND)
+        serializer = TournamentSerializer(tournament, context={'request': request})
+        return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
+ 
+ 
+class TournamentCreateView(APIView):
+    """Admin/Superuser only: create a tournament."""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+ 
+    @swagger_auto_schema(
+        operation_description="Create a tournament (admin only).",
+        request_body=TournamentCreateSerializer,
+        tags=["Tournaments"]
+    )
+    def post(self, request):
+        if request.user.role not in ['admin', 'superuser']:
+            return api_response(is_success=False, error_message="Only admins can create tournaments.", status_code=status.HTTP_403_FORBIDDEN)
+        serializer = TournamentCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            tournament = serializer.save()
+            return api_response(is_success=True, result=TournamentSerializer(tournament, context={'request': request}).data, status_code=status.HTTP_201_CREATED)
+        return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+ 
+ 
+class TournamentUpdateView(APIView):
+    """Admin/Superuser only: update a tournament."""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+ 
+    @swagger_auto_schema(
+        operation_description="Update a tournament (admin only).",
+        request_body=TournamentCreateSerializer,
+        tags=["Tournaments"]
+    )
+    def put(self, request, tournament_id):
+        if request.user.role not in ['admin', 'superuser']:
+            return api_response(is_success=False, error_message="Only admins can update tournaments.", status_code=status.HTTP_403_FORBIDDEN)
+        try:
+            tournament = Tournament.objects.get(pk=tournament_id)
+        except Tournament.DoesNotExist:
+            return api_response(is_success=False, error_message="Tournament not found.", status_code=status.HTTP_404_NOT_FOUND)
+        serializer = TournamentCreateSerializer(tournament, data=request.data, partial=True)
+        if serializer.is_valid():
+            tournament = serializer.save()
+            return api_response(is_success=True, result=TournamentSerializer(tournament, context={'request': request}).data, status_code=status.HTTP_200_OK)
+        return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+ 
+ 
+class TournamentDeleteView(APIView):
+    """Admin/Superuser only: delete a tournament."""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+ 
+    @swagger_auto_schema(operation_description="Delete a tournament (admin only).", tags=["Tournaments"])
+    def delete(self, request, tournament_id):
+        if request.user.role not in ['admin', 'superuser']:
+            return api_response(is_success=False, error_message="Only admins can delete tournaments.", status_code=status.HTTP_403_FORBIDDEN)
+        try:
+            tournament = Tournament.objects.get(pk=tournament_id)
+        except Tournament.DoesNotExist:
+            return api_response(is_success=False, error_message="Tournament not found.", status_code=status.HTTP_404_NOT_FOUND)
+        tournament.delete()
+        return api_response(is_success=True, result={"message": "Tournament deleted."}, status_code=status.HTTP_200_OK)
+ 
+ 
+class TournamentRegisterView(APIView):
+    """Authenticated user: register for a tournament."""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+ 
+    @swagger_auto_schema(
+        operation_description="Register a team for a tournament.",
+        request_body=TournamentRegistrationSerializer,
+        tags=["Tournaments"]
+    )
+    def post(self, request):
+        serializer = TournamentRegistrationSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            registration = serializer.save()
+            return api_response(is_success=True, result=TournamentRegistrationSerializer(registration).data, status_code=status.HTTP_201_CREATED)
+        return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+ 
+ 
+class UserTournamentRegistrationsView(APIView):
+    """Authenticated user: list their tournament registrations."""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+ 
+    @swagger_auto_schema(operation_description="List user's tournament registrations.", tags=["Tournaments"])
+    def get(self, request):
+        registrations = TournamentRegistration.objects.filter(user=request.user).select_related('tournament')
+        serializer = TournamentRegistrationSerializer(registrations, many=True)
+        return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
+ 
+ 
+class TournamentRegistrationsAdminView(APIView):
+    """Admin: list all registrations for a tournament."""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+ 
+    @swagger_auto_schema(operation_description="List all registrations for a tournament (admin only).", tags=["Tournaments"])
+    def get(self, request, tournament_id):
+        if request.user.role not in ['admin', 'superuser']:
+            return api_response(is_success=False, error_message="Only admins can view registrations.", status_code=status.HTTP_403_FORBIDDEN)
+        registrations = TournamentRegistration.objects.filter(tournament_id=tournament_id).select_related('user')
+        serializer = TournamentRegistrationSerializer(registrations, many=True)
+        return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
+
+
 # ─────────────────────────────────────────────
 # PAYMENT VIEWS (Khalti)
 # ─────────────────────────────────────────────
