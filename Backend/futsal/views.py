@@ -559,8 +559,9 @@ class TournamentCreateView(APIView):
         tags=["Tournaments"]
     )
     def post(self, request):
-        if request.user.role not in ['admin', 'superuser']:
-            return api_response(is_success=False, error_message="Only admins can create tournaments.", status_code=status.HTTP_403_FORBIDDEN)
+        if request.user.role not in ['admin', 'owner','superuser']:
+            return api_response(is_success=False, error_message="Only admins and owners can create tournaments.", status_code=status.HTTP_403_FORBIDDEN)
+
         serializer = TournamentCreateSerializer(data=request.data)
         if serializer.is_valid():
             tournament = serializer.save()
@@ -580,8 +581,9 @@ class TournamentUpdateView(APIView):
         tags=["Tournaments"]
     )
     def put(self, request, tournament_id):
-        if request.user.role not in ['admin', 'superuser']:
-            return api_response(is_success=False, error_message="Only admins can update tournaments.", status_code=status.HTTP_403_FORBIDDEN)
+        if request.user.role not in ['admin', 'superuser', 'owner']:
+            return api_response(is_success=False, error_message="Only admins and owners can create tournaments.", status_code=status.HTTP_403_FORBIDDEN)
+        
         try:
             tournament = Tournament.objects.get(pk=tournament_id)
         except Tournament.DoesNotExist:
@@ -600,8 +602,9 @@ class TournamentDeleteView(APIView):
  
     @swagger_auto_schema(operation_description="Delete a tournament (admin only).", tags=["Tournaments"])
     def delete(self, request, tournament_id):
-        if request.user.role not in ['admin', 'superuser']:
-            return api_response(is_success=False, error_message="Only admins can delete tournaments.", status_code=status.HTTP_403_FORBIDDEN)
+        if request.user.role not in ['admin', 'superuser', 'owner']:
+            return api_response(is_success=False, error_message="Only admins and owners can create tournaments.", status_code=status.HTTP_403_FORBIDDEN)
+        
         try:
             tournament = Tournament.objects.get(pk=tournament_id)
         except Tournament.DoesNotExist:
@@ -647,8 +650,8 @@ class TournamentRegistrationsAdminView(APIView):
  
     @swagger_auto_schema(operation_description="List all registrations for a tournament (admin only).", tags=["Tournaments"])
     def get(self, request, tournament_id):
-        if request.user.role not in ['admin', 'superuser']:
-            return api_response(is_success=False, error_message="Only admins can view registrations.", status_code=status.HTTP_403_FORBIDDEN)
+        if request.user.role not in ['admin', 'superuser', 'owner']:
+            return api_response(is_success=False, error_message="Only admins and owners can create tournaments.", status_code=status.HTTP_403_FORBIDDEN)
         registrations = TournamentRegistration.objects.filter(tournament_id=tournament_id).select_related('user')
         serializer = TournamentRegistrationSerializer(registrations, many=True)
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
