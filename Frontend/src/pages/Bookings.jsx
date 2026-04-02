@@ -1,23 +1,19 @@
-import { useMemo, useState } from "react";
-import { Calendar, MapPin, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { Calendar, MapPin, CheckCircle2, XCircle, AlertCircle, Clock } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer";
-import bookingsData from "../data/bookings.json";
-import { FutsalCard } from "../components/FutsalCard";
-import futsalsData from "../data/futsals.json";
-
-function Pill({ children }) {
-  return (
-    <span className="inline-flex items-center rounded-md border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 shadow-[0_1px_0_rgba(0,0,0,0.02)]">
-      {children}
-    </span>
-  );
-}
+import { FeaturedFutsals } from "../components/FeaturedFutsals";
+import api from "../api/axios";
 
 function StatusBadge({ status }) {
   const configs = {
-    upcoming: {
-      label: "Upcoming",
+    pending: {
+      label: "Pending",
+      classes: "bg-yellow-50 text-yellow-700 border-yellow-100",
+      icon: <Clock className="h-3.5 w-3.5" />,
+    },
+    confirmed: {
+      label: "Confirmed",
       classes: "bg-blue-50 text-blue-700 border-blue-100",
       icon: <AlertCircle className="h-3.5 w-3.5" />,
     },
@@ -33,7 +29,7 @@ function StatusBadge({ status }) {
     },
   };
 
-  const config = configs[status] || configs.upcoming;
+  const config = configs[status] || configs.pending;
 
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border ${config.classes}`}>
@@ -51,7 +47,7 @@ function EmptyState({ type }) {
       </div>
       <h3 className="text-xl font-bold text-gray-900">No {type} bookings</h3>
       <p className="text-gray-500 mt-2 mb-8 max-w-xs mx-auto">
-        You don&apos;t have any {type === "upcoming" ? "scheduled matches" : "booking history"} at the moment.
+        You don't have any {type === "upcoming" ? "scheduled matches" : "booking history"} at the moment.
       </p>
       <Link
         to="/browse"
@@ -63,7 +59,7 @@ function EmptyState({ type }) {
   );
 }
 
-function BookingList({ bookings, type }) {
+function BookingList({ bookings, type, onCancel }) {
   if (!bookings.length) return <EmptyState type={type} />;
 
   return (
@@ -75,12 +71,18 @@ function BookingList({ bookings, type }) {
         >
           <div className="flex flex-col lg:flex-row gap-0">
             {/* Image Section */}
-            <div className="w-full lg:w-72 shrink-0 relative overflow-hidden">
-              <img
-                src={booking.court?.image}
-                alt={booking.court?.name}
-                className="w-full h-56 lg:h-full object-cover transition-transform duration-700 group-hover:scale-110"
-              />
+            <div className="w-full lg:w-72 shrink-0 relative overflow-hidden bg-gray-100">
+              {booking.court_image ? (
+                <img
+                  src={booking.court_image}
+                  alt={booking.court_name}
+                  className="w-full h-56 lg:h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+              ) : (
+                <div className="w-full h-56 lg:h-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center">
+                  <span className="text-green-600 font-bold text-2xl">{booking.court_name?.charAt(0)}</span>
+                </div>
+              )}
               <div className="absolute top-4 left-4">
                 <StatusBadge status={booking.status} />
               </div>
@@ -93,21 +95,24 @@ function BookingList({ bookings, type }) {
                 <div className="flex-1 space-y-4">
                   <div>
                     <h3 className="text-2xl font-bold text-gray-900 group-hover:text-green-700 transition-colors">
-                      {booking.court?.name}
+                      {booking.court_name}
                     </h3>
                     <div className="mt-2 flex items-center text-gray-500">
                       <MapPin className="w-4 h-4 mr-1.5 text-green-600" />
-                      <span className="text-sm font-medium">{booking.court?.location}</span>
+                      <span className="text-sm font-medium">{booking.court_address}</span>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap gap-4 items-center pt-2">
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
                       <Calendar className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm font-semibold text-gray-700">{booking.date}</span>
+                      <span className="text-sm font-semibold text-gray-700">{booking.booking_date}</span>
                     </div>
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
-                      <span className="text-sm font-semibold text-gray-700">{booking.time}</span>
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm font-semibold text-gray-700">
+                        {booking.time_slot_detail?.start_time?.slice(0, 5)} - {booking.time_slot_detail?.end_time?.slice(0, 5)}
+                      </span>
                     </div>
                   </div>
 
@@ -116,33 +121,38 @@ function BookingList({ bookings, type }) {
                       Booking ID: <span className="font-mono font-medium text-gray-900">#BK-{booking.id}</span>
                     </div>
                     <div className="text-lg font-bold text-green-700">
-                      Rs {booking.court?.price}
+                      Rs {booking.total_amount}
                     </div>
                   </div>
                 </div>
 
                 {/* Actions Panel */}
                 <div className="w-full md:w-52 flex flex-col justify-center gap-3 border-t md:border-t-0 md:border-l border-gray-100 pt-6 md:pt-0 md:pl-6">
-                  <Link
-                    to={`/bookings/${booking.id}`}
-                    className="h-[52px] flex items-center justify-center px-6 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-black transition-all active:scale-95 shadow-md hover:shadow-lg"
-                  >
-                    View Details
-                  </Link>
-
-                  {type === "history" && booking.status === "completed" ? (
-                    <button className="h-[52px] px-6 rounded-xl bg-green-50 text-green-700 text-sm font-bold hover:bg-green-100 transition-all border border-green-100 active:scale-95">
+                  {type === "history" && booking.status === "completed" && (
+                    <Link
+                      to={`/browse/${booking.court}`}
+                      className="h-[52px] flex items-center justify-center px-6 rounded-xl bg-green-50 text-green-700 text-sm font-bold hover:bg-green-100 transition-all border border-green-100 active:scale-95"
+                    >
                       Leave Review
-                    </button>
-                  ) : (
-                    /* This invisible spacer keeps the layout identical when the review button is missing */
-                    <div className="hidden md:block h-[52px]" aria-hidden="true" />
+                    </Link>
                   )}
 
-                  {booking.status === "upcoming" && (
-                    <button className="h-[52px] px-6 rounded-xl border border-red-100 bg-white text-red-600 text-sm font-bold hover:bg-red-50 transition-all active:scale-95">
+                  {(booking.status === "pending" || booking.status === "confirmed") && (
+                    <button
+                      onClick={() => onCancel(booking.id)}
+                      className="h-[52px] px-6 rounded-xl border border-red-100 bg-white text-red-600 text-sm font-bold hover:bg-red-50 transition-all active:scale-95"
+                    >
                       Cancel Booking
                     </button>
+                  )}
+
+                  {booking.status === "pending" && (
+                    <Link
+                      to={`/browse/${booking.court}`}
+                      className="h-[52px] flex items-center justify-center px-6 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-black transition-all active:scale-95 shadow-md"
+                    >
+                      Pay Now
+                    </Link>
                   )}
                 </div>
               </div>
@@ -156,21 +166,67 @@ function BookingList({ bookings, type }) {
 
 export default function Bookings() {
   const [tab, setTab] = useState("upcoming");
+  const [bookings, setBookings] = useState([]);
+  const [courts, setCourts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState(null);
+  const navigate = useNavigate();
 
-  const enrichedBookings = useMemo(() => {
-    return bookingsData.map(booking => ({
-      ...booking,
-      court: futsalsData.find(f => f.id === booking.futsalId)
-    }));
-  }, []);
+  const fetchBookings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [bookingsRes, courtsRes] = await Promise.all([
+        api.get("/futsal/bookings/"),
+        api.get("/futsal/courts/")
+      ]);
 
-  const upcoming = useMemo(() => enrichedBookings.filter((b) => b.status === "upcoming"), [enrichedBookings]);
-  const history = useMemo(() => enrichedBookings.filter((b) => b.status !== "upcoming"), [enrichedBookings]);
+      const bookingsData = bookingsRes.data?.Result || [];
+      const courtsData = courtsRes.data?.Result || [];
+
+      // Enrich bookings with court image and address
+      const enriched = bookingsData.map(booking => {
+        const court = courtsData.find(c => c.id === booking.court);
+        return {
+          ...booking,
+          court_name: booking.court_name,
+          court_image: court?.image || null,
+          court_address: court?.address || "",
+        };
+      });
+
+      setBookings(enriched);
+      setCourts(courtsData);
+    } catch (err) {
+      if (err?.response?.status === 401) navigate("/login");
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
+
+  const handleCancel = async (bookingId) => {
+    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+    setCancellingId(bookingId);
+    try {
+      await api.patch(`/futsal/bookings/${bookingId}/cancel/`);
+      fetchBookings();
+    } catch (err) {
+      alert("Failed to cancel booking. Please try again.");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const upcoming = bookings.filter(b => b.status === "pending" || b.status === "confirmed");
+  const history = bookings.filter(b => b.status === "completed" || b.status === "cancelled");
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
       <main className="flex-grow w-full">
-        {/* Header Section */}
+        {/* Header */}
         <div className="bg-white border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
             <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
@@ -183,15 +239,14 @@ export default function Bookings() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          {/* Tabs Control */}
+          {/* Tabs */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
             <div className="bg-gray-100 p-1.5 rounded-2xl inline-flex shadow-inner">
               <button
                 onClick={() => setTab("upcoming")}
-                className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${tab === "upcoming"
-                  ? "bg-white text-gray-900 shadow-md transform scale-105"
-                  : "text-gray-500 hover:text-gray-800"
-                  }`}
+                className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                  tab === "upcoming" ? "bg-white text-gray-900 shadow-md transform scale-105" : "text-gray-500 hover:text-gray-800"
+                }`}
               >
                 Upcoming
                 {upcoming.length > 0 && (
@@ -202,25 +257,44 @@ export default function Bookings() {
               </button>
               <button
                 onClick={() => setTab("history")}
-                className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${tab === "history"
-                  ? "bg-white text-gray-900 shadow-md transform scale-105"
-                  : "text-gray-500 hover:text-gray-800"
-                  }`}
+                className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                  tab === "history" ? "bg-white text-gray-900 shadow-md transform scale-105" : "text-gray-500 hover:text-gray-800"
+                }`}
               >
                 History
+                {history.length > 0 && (
+                  <span className="ml-2 bg-gray-400 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                    {history.length}
+                  </span>
+                )}
               </button>
             </div>
           </div>
 
           <div className="min-h-[400px]">
-            {tab === "upcoming" ? (
-              <BookingList bookings={upcoming} type="upcoming" />
+            {loading ? (
+              <div className="space-y-6">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="bg-white rounded-3xl border border-gray-100 overflow-hidden animate-pulse">
+                    <div className="flex flex-col lg:flex-row">
+                      <div className="w-full lg:w-72 h-56 bg-gray-100" />
+                      <div className="flex-1 p-8 space-y-4">
+                        <div className="h-6 bg-gray-100 rounded w-1/2" />
+                        <div className="h-4 bg-gray-100 rounded w-1/3" />
+                        <div className="h-4 bg-gray-100 rounded w-1/4" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : tab === "upcoming" ? (
+              <BookingList bookings={upcoming} type="upcoming" onCancel={handleCancel} />
             ) : (
-              <BookingList bookings={history} type="history" />
+              <BookingList bookings={history} type="history" onCancel={handleCancel} />
             )}
           </div>
 
-          {/* Recommended Section */}
+          {/* Recommended Courts */}
           <div className="mt-24 border-t border-gray-200 pt-16">
             <div className="flex items-end justify-between mb-10">
               <div>
@@ -235,16 +309,10 @@ export default function Bookings() {
                 <span className="transition-transform group-hover:translate-x-1">→</span>
               </Link>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {futsalsData.slice(0, 3).map((court) => (
-                <FutsalCard key={court.id} court={court} />
-              ))}
-            </div>
+            <FeaturedFutsals limit={3} />
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   );
