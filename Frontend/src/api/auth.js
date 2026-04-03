@@ -3,22 +3,19 @@ import api from "./axios";
 export async function loginUser(payload) {
   const res = await api.post("/accounts/login/", payload);
 
-  // Your backend returns tokens inside Result.data
   const data = res.data?.Result?.data;
 
   if (!data?.access_token) {
     throw new Error("No access token returned");
-
-  if (data.email) {
-  localStorage.setItem("email", data.email);  
-  }}
+  }
 
   localStorage.setItem("access_token", data.access_token);
   localStorage.setItem("refresh_token", data.refresh_token);
   localStorage.setItem("login_time", Date.now().toString());
-  if (data.role) {
-    localStorage.setItem("role", data.role);
-  }
+
+  if (data.email) localStorage.setItem("email", data.email);
+  if (data.phone_number) localStorage.setItem("phone", data.phone_number);
+  if (data.role) localStorage.setItem("role", data.role);
 
   return data;
 }
@@ -28,6 +25,8 @@ export function clearSession() {
   localStorage.removeItem("refresh_token");
   localStorage.removeItem("role");
   localStorage.removeItem("login_time");
+  localStorage.removeItem("email");
+  localStorage.removeItem("phone");
 }
 
 export function isSessionExpired() {

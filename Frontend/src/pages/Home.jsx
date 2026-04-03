@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ImageWithFallback } from "../components/ui/ImageWithFallback";
-import { FutsalCard } from "../components/FutsalCard";
 import { BenefitCard } from "../components/BenefitCard";
 import { StepCard } from "../components/StepCard";
 import { Footer } from "../components/Footer";
@@ -388,10 +387,10 @@ function Home() {
             Take your futsal online and manage bookings, availability, and
             earnings easily with PitchPal.
           </p>
-          <button className="px-10 py-4 md:px-12 md:py-5 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-xl font-medium text-lg md:text-xl transition-all transform hover:scale-105 active:scale-95 shadow-xl hover:shadow-2xl inline-flex items-center space-x-2">
+          <Link to="/register" className="px-10 py-4 md:px-12 md:py-5 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-xl font-medium text-lg md:text-xl transition-all transform hover:scale-105 active:scale-95 shadow-xl hover:shadow-2xl inline-flex items-center space-x-2">
             <span>Sign up Futsal</span>
             <ArrowRight className="w-5 h-5" />
-          </button>
+          </Link>
         </div>
       </section>
 
