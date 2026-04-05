@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import StatusBadge from "../../components/owner/StatusBadge";
+import WalkInModal from "../../components/owner/WalkInModal";
 
-export default function OwnerBookings({ bookings }) {
+export default function OwnerBookings({ bookings, courts, onRefresh }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showWalkIn, setShowWalkIn] = useState(false);
 
   const filtered = bookings.filter(b => {
     const matchSearch =
@@ -16,7 +18,17 @@ export default function OwnerBookings({ bookings }) {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-gray-900">All Bookings</h2>
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-gray-900">All Bookings</h2>
+        <button
+          onClick={() => setShowWalkIn(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-semibold text-sm shadow-sm"
+        >
+          <Plus className="w-4 h-4" /> Walk-in Booking
+        </button>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -81,11 +93,19 @@ export default function OwnerBookings({ bookings }) {
         </div>
       </div>
 
-      {/* Summary */}
       {bookings.length > 0 && (
         <div className="text-sm text-gray-500">
           Showing {filtered.length} of {bookings.length} bookings
         </div>
+      )}
+
+      {/* Walk-in Modal */}
+      {showWalkIn && (
+        <WalkInModal
+          courts={courts}
+          onClose={() => setShowWalkIn(false)}
+          onSuccess={() => { setShowWalkIn(false); onRefresh(); }}
+        />
       )}
     </div>
   );

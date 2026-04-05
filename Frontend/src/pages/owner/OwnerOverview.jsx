@@ -1,8 +1,12 @@
-import { Home, Calendar, Clock, DollarSign } from "lucide-react";
+import { useState } from "react";
+import { Home, Calendar, Clock, DollarSign, Plus } from "lucide-react";
 import StatCard from "../../components/owner/StatCard";
 import StatusBadge from "../../components/owner/StatusBadge";
+import WalkInModal from "../../components/owner/WalkInModal";
 
-export default function OwnerOverview({ courts, bookings, onTabChange }) {
+export default function OwnerOverview({ courts, bookings, onTabChange, onRefresh }) {
+  const [showWalkIn, setShowWalkIn] = useState(false);
+
   const today = new Date().toISOString().split("T")[0];
   const todaysBookings = bookings.filter(b => b.booking_date === today).length;
   const pendingBookings = bookings.filter(b => b.status === "pending").length;
@@ -12,6 +16,18 @@ export default function OwnerOverview({ courts, bookings, onTabChange }) {
 
   return (
     <div className="space-y-6">
+
+      {/* Stats + Walk-in button */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-gray-900">Overview</h2>
+        <button
+          onClick={() => setShowWalkIn(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition font-semibold text-sm shadow-sm"
+        >
+          <Plus className="w-4 h-4" /> Walk-in Booking
+        </button>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Courts" value={courts.length} icon={<Home className="w-5 h-5" />} color="blue" />
@@ -97,6 +113,15 @@ export default function OwnerOverview({ courts, bookings, onTabChange }) {
           )}
         </div>
       </div>
+
+      {/* Walk-in Modal */}
+      {showWalkIn && (
+        <WalkInModal
+          courts={courts}
+          onClose={() => setShowWalkIn(false)}
+          onSuccess={() => { setShowWalkIn(false); onRefresh(); }}
+        />
+      )}
     </div>
   );
 }

@@ -75,14 +75,14 @@ class FutsalCourtCreateSerializer(serializers.ModelSerializer):
 class BookingSerializer(serializers.ModelSerializer):
     court_name = serializers.CharField(source='court.name', read_only=True)
     time_slot_detail = TimeSlotSerializer(source='time_slot', read_only=True)
-    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_email = serializers.EmailField(source='user.email', read_only=True, allow_null=True)
 
     class Meta:
         model = Booking
         fields = [
             'id', 'user_email', 'court', 'court_name',
             'time_slot', 'time_slot_detail', 'booking_date',
-            'status', 'total_amount', 'created_at'
+            'status', 'total_amount', 'customer_name', 'customer_phone', 'created_at'
         ]
         read_only_fields = ['status', 'total_amount', 'created_at', 'user_email']
 
@@ -150,6 +150,53 @@ class BookingSerializer(serializers.ModelSerializer):
         return booking
 
 
+class WalkinBookingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Booking
+        fields = ['court', 'time_slot', 'booking_date', 'customer_name', 'customer_phone']
+
+    def validate(self, data):
+        court = data.get('court')
+        time_slot = data.get('time_slot')
+        booking_date = data.get('booking_date')
+
+        if not time_slot or not court or time_slot.court != court:
+            raise serializers.ValidationError({'time_slot': 'Invalid slot for selected court.'})
+
+        # Check if already booked
+        existing = Booking.objects.filter(
+            court=court,
+            time_slot=time_slot,
+            booking_date=booking_date
+        ).exclude(status=BookingStatusEnum.CANCELLED)
+        
+        if existing.exists():
+            raise serializers.ValidationError('This slot is already booked.')
+
+        return data
+
+    def create(self, validated_data):
+        from datetime import datetime, date as date_type
+        from decimal import Decimal
+
+        court = validated_data['court']
+        time_slot = validated_data['time_slot']
+
+        # Calculate amount
+        start = datetime.combine(date_type.today(), time_slot.start_time)
+        end = datetime.combine(date_type.today(), time_slot.end_time)
+        hours = (end - start).seconds / 3600
+        total_amount = round(Decimal(str(hours)) * court.price_per_hour, 2)
+
+        # Walk-ins are auto-confirmed
+        booking = Booking.objects.create(
+            status=BookingStatusEnum.CONFIRMED,
+            total_amount=total_amount,
+            **validated_data
+        )
+        return booking
+
+
 class ReviewSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source='user.email', read_only=True)
     court_name = serializers.CharField(source='court.name', read_only=True)
@@ -198,108 +245,3 @@ class WeeklyBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = WeeklyBooking
         fields = ['id', 'user_email', 'court', 'court_name', 'time_slot', 'time_slot_detail', 'start_date', 'end_date', 'is_active', 'created_at']
-        read_only_fields = ['user_email', 'created_at']
-
-    def validate(self, data):
-        from django.utils import timezone
-        today = timezone.localdate()
-        if data['start_date'] < today:
-            raise serializers.ValidationError({'start_date': 'Start date cannot be in the past.'})
-        if data.get('end_date') and data['end_date'] < data['start_date']:
-            raise serializers.ValidationError({'end_date': 'End date must be after start date.'})
-        return data
-
-    def create(self, validated_data):
-        user = self.context['request'].user
-        return WeeklyBooking.objects.create(user=user, **validated_data)
-
-
-class TournamentSerializer(serializers.ModelSerializer):
-    registered_teams = serializers.IntegerField(read_only=True)
-    image = serializers.SerializerMethodField()
- 
-    class Meta:
-        model = Tournament
-        fields = [
-            'id', 'title', 'organizer', 'location', 'date',
-            'prize_pool', 'entry_fee', 'team_limit', 'registered_teams',
-            'format', 'description', 'rules', 'image',
-            'status', 'state', 'contact_phone', 'created_at'
-        ]
-        read_only_fields = ['registered_teams', 'created_at']
- 
-    def get_image(self, obj):
-        if obj.image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return None
- 
- 
-class TournamentCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Tournament
-        fields = [
-            'id', 'title', 'organizer', 'location', 'date',
-            'prize_pool', 'entry_fee', 'team_limit', 'format',
-            'description', 'rules', 'image', 'status', 'state', 'contact_phone'
-        ]
- 
- 
-class TournamentRegistrationSerializer(serializers.ModelSerializer):
-    user_email = serializers.EmailField(source='user.email', read_only=True)
-    tournament_title = serializers.CharField(source='tournament.title', read_only=True)
- 
-    class Meta:
-        model = TournamentRegistration
-        fields = [
-            'id', 'tournament', 'tournament_title', 'user_email',
-            'team_name', 'contact_phone', 'player_names', 'registered_at'
-        ]
-        read_only_fields = ['user_email', 'tournament_title', 'registered_at']
- 
-    def validate(self, data):
-        tournament = data.get('tournament')
-        user = self.context['request'].user
- 
-        if tournament.status != 'Registration Open':
-            raise serializers.ValidationError({'tournament': 'Registration is closed for this tournament.'})
- 
-        if tournament.registered_teams >= tournament.team_limit:
-            raise serializers.ValidationError({'tournament': 'This tournament is full.'})
- 
-        existing = TournamentRegistration.objects.filter(tournament=tournament, user=user)
-        if existing.exists():
-            raise serializers.ValidationError({'tournament': 'You have already registered for this tournament.'})
- 
-        return data
- 
-    def create(self, validated_data):
-        user = self.context['request'].user
-        return TournamentRegistration.objects.create(user=user, **validated_data)
-
-
-class PaymentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Payment
-        fields = ['id', 'booking', 'amount', 'payment_method', 'pidx', 'transaction_id', 'status', 'paid_at', 'created_at']
-        read_only_fields = ['status', 'pidx', 'transaction_id', 'paid_at', 'created_at']
-
-
-class KhaltiInitSerializer(serializers.Serializer):
-    booking_id = serializers.IntegerField()
-
-    def validate_booking_id(self, value):
-        try:
-            booking = Booking.objects.get(pk=value)
-        except Booking.DoesNotExist:
-            raise serializers.ValidationError('Booking not found.')
-        if booking.status == BookingStatusEnum.CANCELLED:
-            raise serializers.ValidationError('Cannot pay for a cancelled booking.')
-        return value
-
-
-class KhaltiVerifySerializer(serializers.Serializer):
-    pidx = serializers.CharField()
-    booking_id = serializers.IntegerField()

@@ -72,7 +72,7 @@ class BookingStatusEnum(models.TextChoices):
 
 
 class Booking(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings', null=True, blank=True)
     court = models.ForeignKey(FutsalCourt, on_delete=models.CASCADE, related_name='bookings')
     time_slot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE, related_name='bookings')
     booking_date = models.DateField()
@@ -82,11 +82,14 @@ class Booking(models.Model):
         default=BookingStatusEnum.PENDING
     )
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    customer_name = models.CharField(max_length=100, blank=True, null=True)
+    customer_phone = models.CharField(max_length=20, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Booking#{self.id} - {self.user.email} @ {self.court.name} on {self.booking_date}"
+        user_info = self.user.email if self.user else f"Walk-in: {self.customer_name}"
+        return f"Booking#{self.id} - {user_info} @ {self.court.name} on {self.booking_date}"
 
 class WeeklyBooking(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='weekly_bookings')

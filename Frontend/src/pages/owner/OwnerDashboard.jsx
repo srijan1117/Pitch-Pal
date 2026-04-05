@@ -148,13 +148,13 @@ export default function OwnerDashboard() {
         {/* Page content */}
         <main className="flex-1 overflow-y-auto bg-gray-50 p-4 sm:p-6">
           {activeTab === "overview" && (
-            <OwnerOverview courts={courts} bookings={bookings} onTabChange={handleTabChange} />
+            <OwnerOverview courts={courts} bookings={bookings} onTabChange={handleTabChange} onRefresh={fetchData}/>
           )}
           {activeTab === "courts" && (
             <OwnerCourts courts={courts} onRefresh={fetchData} />
           )}
           {activeTab === "bookings" && (
-            <OwnerBookings bookings={bookings} />
+            <OwnerBookings bookings={bookings} courts={courts} onRefresh={fetchData} />
           )}
           {activeTab === "tournaments" && (
             <OwnerTournaments tournaments={tournaments} onRefresh={fetchData} />
