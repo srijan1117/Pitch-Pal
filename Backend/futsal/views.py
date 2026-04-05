@@ -214,7 +214,8 @@ class CourtImageUploadView(APIView):
         except FutsalCourt.DoesNotExist:
             return api_response(is_success=False, error_message="Court not found.", status_code=404)
 
-        image_id = request.data.get('image_id')
+    # Get image_id from query params instead of request body
+        image_id = request.query_params.get('image_id')
         if not image_id:
             return api_response(is_success=False, error_message="image_id is required.", status_code=400)
 

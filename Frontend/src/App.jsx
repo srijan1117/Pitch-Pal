@@ -9,7 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./components/MainLayout.jsx";
 import Tournaments from "./pages/Tournaments";
 import TournamentDetail from "./pages/TournamentDetail";
-import OwnerDashboard from "./pages/OwnerDashboard";
+import OwnerDashboard from "./pages/owner/OwnerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 
 export default function App() {
@@ -22,7 +22,6 @@ export default function App() {
 
         {/* Legacy redirects */}
         <Route path="/" element={<Navigate to="/home" replace />} />
-        <Route path="/owner-dashboard" element={<Navigate to="/owner/dashboard" replace />} />
         <Route path="/admin-dashboard" element={<Navigate to="/admin/dashboard" replace />} />
 
         {/* Public + User routes — WITH navbar */}
@@ -46,7 +45,16 @@ export default function App() {
 
         {/* Owner Dashboard — NO global navbar, own layout */}
         <Route
-          path="/owner/dashboard"
+          path="/owner"
+          element={
+            <ProtectedRoute allowedRoles={["owner"]}>
+              <OwnerDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/owner/*"
           element={
             <ProtectedRoute allowedRoles={["owner"]}>
               <OwnerDashboard />

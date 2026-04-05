@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import LogoutConfirmationModal from "../components/LogoutConfirmationModal";
-import { LogOut, Users, Building2, MapPin, Calendar, FileText, AlertCircle, ShieldCheck, Menu, X } from "lucide-react";
+import { LogOut, Users, Building2, MapPin, Calendar, FileText, AlertCircle, ShieldCheck, Menu, X, LayoutDashboard } from "lucide-react";
 import { clearSession } from "../api/auth";
 
 export default function AdminDashboard() {
@@ -44,7 +44,7 @@ export default function AdminDashboard() {
         </div>
         <nav className="flex-1 p-4 space-y-2">
           <a href="#" className="flex items-center space-x-3 px-4 py-3 bg-indigo-600 rounded-lg text-white shadow-sm">
-            <LayoutDashboardIcon className="w-5 h-5" />
+            <LayoutDashboard className="w-5 h-5" />
             <span>Dashboard</span>
           </a>
           <a href="#" className="flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
@@ -204,7 +204,7 @@ export default function AdminDashboard() {
             </div>
             <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
               <button onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center space-x-3 px-4 py-3 bg-indigo-600 rounded-lg text-white shadow-sm">
-                <LayoutDashboardIcon className="w-5 h-5" />
+                <LayoutDashboard className="w-5 h-5" />
                 <span>Dashboard</span>
               </button>
               <button onClick={() => setIsMobileMenuOpen(false)} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition">
@@ -232,27 +232,5 @@ export default function AdminDashboard() {
         </div>
       )}
     </div>
-  );
-}
-// Placeholder icon not natively imported above to prevent breaking, easily fixable by standardizing imports.
-function LayoutDashboardIcon(props) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect width="7" height="9" x="3" y="3" rx="1" />
-      <rect width="7" height="5" x="14" y="3" rx="1" />
-      <rect width="7" height="9" x="14" y="12" rx="1" />
-      <rect width="7" height="5" x="3" y="16" rx="1" />
-    </svg>
   );
 }
