@@ -4,6 +4,7 @@ from futsal.models import (
     FutsalCourt, TimeSlot, Booking, Payment,
     BookingStatusEnum, CourtImage, WeeklyBooking, Review
 )
+from accounts.models import RoleEnum
 
 
 class TimeSlotSerializer(serializers.ModelSerializer):
@@ -118,6 +119,7 @@ class BookingSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         from datetime import datetime, date as date_type
         from decimal import Decimal
+
         user = self.context['request'].user
         time_slot = validated_data['time_slot']
         court = validated_data['court']
@@ -127,9 +129,22 @@ class BookingSerializer(serializers.ModelSerializer):
         hours = (end - start).seconds / 3600
         total_amount = round(Decimal(str(hours)) * court.price_per_hour, 2)
 
+        # ✅ Auto-confirm logic
+        auto_confirm = (
+            user.role == RoleEnum.OWNER and
+            court and
+            court.owner == user
+        )
+
+        booking_status = (
+            BookingStatusEnum.CONFIRMED if auto_confirm
+            else BookingStatusEnum.PENDING
+        )
+
         booking = Booking.objects.create(
             user=user,
             total_amount=total_amount,
+            status=booking_status,
             **validated_data
         )
         return booking

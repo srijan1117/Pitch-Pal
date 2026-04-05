@@ -4,7 +4,8 @@ import api from "../../api/axios";
 
 export default function TournamentModal({ onClose, onSuccess }) {
   const [form, setForm] = useState({
-    title: "", organizer: "", location: "", date: "",
+    title: "", organizer: "", location: "", start_date: "",
+    end_date: "", date: "",
     prize_pool: "", entry_fee: "", team_limit: "", format: "",
     description: "", rules: "", status: "Registration Open",
     state: "upcoming", contact_phone: ""
@@ -48,6 +49,8 @@ export default function TournamentModal({ onClose, onSuccess }) {
     { key: "title", label: "Title *" },
     { key: "organizer", label: "Organizer *" },
     { key: "location", label: "Location *" },
+    { key: "start_date", label: "Start Date *", type: "date" },
+    { key: "end_date", label: "End Date *", type: "date" },
     { key: "date", label: "Date * (e.g. Apr 15 - Apr 20, 2026)" },
     { key: "prize_pool", label: "Prize Pool * (e.g. Rs 1,00,000)" },
     { key: "entry_fee", label: "Entry Fee * (e.g. Rs 5,000)" },

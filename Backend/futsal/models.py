@@ -170,6 +170,8 @@ class Tournament(models.Model):
     title = models.CharField(max_length=200)
     organizer = models.CharField(max_length=200)
     location = models.CharField(max_length=255)
+    start_date = models.DateField(blank=True, null=True)  
+    end_date = models.DateField(blank=True, null=True)
     date = models.CharField(max_length=100)
     prize_pool = models.CharField(max_length=100)
     entry_fee = models.CharField(max_length=100)
