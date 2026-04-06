@@ -117,17 +117,25 @@ class BookingSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        from datetime import datetime, date as date_type
+        from datetime import datetime, date as date_type, timedelta
         from decimal import Decimal
 
         user = self.context['request'].user
         time_slot = validated_data['time_slot']
         court = validated_data['court']
 
-        start = datetime.combine(date_type.today(), time_slot.start_time)
-        end = datetime.combine(date_type.today(), time_slot.end_time)
-        hours = (end - start).seconds / 3600
-        total_amount = round(Decimal(str(hours)) * court.price_per_hour, 2)
+        # Calculate duration in hours
+        # Note: we use a single day baseline. If end < start, it means it crosses midnight.
+        start_dt = datetime.combine(date_type.today(), time_slot.start_time)
+        end_dt = datetime.combine(date_type.today(), time_slot.end_time)
+        
+        duration = end_dt - start_dt
+        if duration.total_seconds() < 0:
+            # If negative, it likely crosses midnight (e.g., 23:00 to 01:00)
+            duration += timedelta(days=1)
+            
+        hours = Decimal(str(duration.total_seconds() / 3600))
+        total_amount = round(hours * court.price_per_hour, 2)
 
         # ✅ Auto-confirm logic
         auto_confirm = (

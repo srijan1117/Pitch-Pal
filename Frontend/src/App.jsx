@@ -11,10 +11,12 @@ import Tournaments from "./pages/Tournaments";
 import TournamentDetail from "./pages/TournamentDetail";
 import OwnerDashboard from "./pages/owner/OwnerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import AutoLogout from "./components/AutoLogout";
 
 export default function App() {
   return (
     <Router>
+      <AutoLogout />
       <Routes>
         {/* Auth routes — NO navbar */}
         <Route path="/login" element={<Login />} />

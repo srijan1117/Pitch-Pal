@@ -40,7 +40,13 @@ export default function FutsalDetail() {
     return d;
   });
 
-  const formatDate = (date) => date.toISOString().split("T")[0];
+  const formatDate = (date) => {
+    const d = new Date(date);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
   // ── Fetch court details ───────────────────────────────────────────────
   useEffect(() => {
@@ -138,11 +144,27 @@ export default function FutsalDetail() {
       });
       setSlots(res.data?.Result || []);
     } catch (err) {
-      const msg = err?.response?.data?.ErrorMessage;
-      setBookingError(
-        typeof msg === "string" ? msg :
-          JSON.stringify(msg) || "Booking failed. Please try again."
-      );
+      const data = err?.response?.data;
+      // Try to extract the most meaningful error message
+      const msg = data?.ErrorMessage || data?.detail || data?.error || data;
+      
+      let errorString = "Booking failed. Please try again.";
+      
+      if (typeof msg === "string") {
+        errorString = msg;
+      } else if (typeof msg === "object" && msg !== null) {
+        // Handle DRF validation errors (e.g., { "field": ["error"] } or "non_field_errors")
+        const firstError = Object.values(msg)[0];
+        if (Array.isArray(firstError)) {
+          errorString = firstError[0];
+        } else if (typeof firstError === "string") {
+          errorString = firstError;
+        } else {
+          errorString = JSON.stringify(msg);
+        }
+      }
+      
+      setBookingError(errorString);
     } finally {
       setBooking(false);
     }
