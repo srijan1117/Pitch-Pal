@@ -73,7 +73,7 @@ class CourtCreateView(APIView):
                 court = serializer.save()
                 return api_response(
                     is_success=True,
-                    result=FutsalCourtSerializer(court).data,
+                    result=FutsalCourtSerializer(court, context={'request': request}).data,
                     status_code=status.HTTP_201_CREATED
                 )
             return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
@@ -101,7 +101,7 @@ class CourtDetailView(APIView):
         court, error = self.get_object(pk, request.user)
         if error:
             return api_response(is_success=False, error_message=error, status_code=status.HTTP_404_NOT_FOUND)
-        return api_response(is_success=True, result=FutsalCourtSerializer(court).data, status_code=status.HTTP_200_OK)
+        return api_response(is_success=True, result=FutsalCourtSerializer(court, context={'request': request}).data, status_code=status.HTTP_200_OK)
 
     @swagger_auto_schema(
         operation_description="Update court details (owner only).",
@@ -115,7 +115,7 @@ class CourtDetailView(APIView):
         serializer = FutsalCourtCreateSerializer(court, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             court = serializer.save()
-            return api_response(is_success=True, result=FutsalCourtSerializer(court).data, status_code=status.HTTP_200_OK)
+            return api_response(is_success=True, result=FutsalCourtSerializer(court, context={'request': request}).data, status_code=status.HTTP_200_OK)
         return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(operation_description="Delete a court (owner only).", tags=["Courts"])
@@ -135,7 +135,7 @@ class OwnerCourtListView(APIView):
     @swagger_auto_schema(operation_description="List courts owned by the logged-in owner.", tags=["Courts"])
     def get(self, request):
         courts = FutsalCourt.objects.filter(owner=request.user).prefetch_related('time_slots')
-        serializer = FutsalCourtSerializer(courts, many=True)
+        serializer = FutsalCourtSerializer(courts, many=True, context={'request': request})
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
 
 # ─────────────────────────────────────────────
@@ -341,7 +341,7 @@ class BookingCreateView(APIView):
         serializer = BookingSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             booking = serializer.save()
-            return api_response(is_success=True, result=BookingSerializer(booking).data, status_code=status.HTTP_201_CREATED)
+            return api_response(is_success=True, result=BookingSerializer(booking, context={'request': request}).data, status_code=status.HTTP_201_CREATED)
         return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
 
@@ -353,7 +353,7 @@ class UserBookingListView(APIView):
     @swagger_auto_schema(operation_description="List all bookings for the logged-in user.", tags=["Bookings"])
     def get(self, request):
         bookings = Booking.objects.filter(user=request.user).select_related('court', 'time_slot').order_by('-created_at')
-        serializer = BookingSerializer(bookings, many=True)
+        serializer = BookingSerializer(bookings, many=True, context={'request': request})
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
 
 
@@ -390,7 +390,7 @@ class OwnerBookingListView(APIView):
     def get(self, request):
         courts = FutsalCourt.objects.filter(owner=request.user)
         bookings = Booking.objects.filter(court__in=courts).select_related('court', 'time_slot', 'user').order_by('-created_at')
-        serializer = BookingSerializer(bookings, many=True)
+        serializer = BookingSerializer(bookings, many=True, context={'request': request})
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
 
 
