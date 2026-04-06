@@ -14,7 +14,8 @@ from futsal.models import FutsalCourt, TimeSlot, Booking, Payment, BookingStatus
 from futsal.serializers import (
     FutsalCourtSerializer, FutsalCourtCreateSerializer,
     TimeSlotSerializer, BookingSerializer,
-    KhaltiInitSerializer, KhaltiVerifySerializer
+    KhaltiInitSerializer, KhaltiVerifySerializer,
+    WalkinBookingSerializer
 )
 from futsal.permissions import IsOwner, IsOwnerOfCourt
 from PitchPal.utils import api_response
@@ -391,6 +392,28 @@ class OwnerBookingListView(APIView):
         bookings = Booking.objects.filter(court__in=courts).select_related('court', 'time_slot', 'user').order_by('-created_at')
         serializer = BookingSerializer(bookings, many=True)
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
+
+
+class WalkinBookingView(APIView):
+    """Owner only: create a walk-in booking."""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    @swagger_auto_schema(
+        operation_description="Create a walk-in booking (owner only).",
+        request_body=WalkinBookingSerializer,
+        tags=["Bookings"]
+    )
+    def post(self, request):
+        serializer = WalkinBookingSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            booking = serializer.save()
+            return api_response(
+                is_success=True, 
+                result=BookingSerializer(booking).data, 
+                status_code=status.HTTP_201_CREATED
+            )
+        return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
 
 

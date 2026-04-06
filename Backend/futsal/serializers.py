@@ -245,3 +245,110 @@ class WeeklyBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = WeeklyBooking
         fields = ['id', 'user_email', 'court', 'court_name', 'time_slot', 'time_slot_detail', 'start_date', 'end_date', 'is_active', 'created_at']
+
+
+class KhaltiInitSerializer(serializers.Serializer):
+    booking_id = serializers.IntegerField()
+
+    def validate_booking_id(self, value):
+        try:
+            booking = Booking.objects.get(pk=value)
+        except Booking.DoesNotExist:
+            raise serializers.ValidationError('Booking not found.')
+        if booking.status == BookingStatusEnum.CANCELLED:
+            raise serializers.ValidationError('Cannot pay for a cancelled booking.')
+        return value
+
+
+class KhaltiVerifySerializer(serializers.Serializer):
+    pidx = serializers.CharField()
+    booking_id = serializers.IntegerField()
+
+
+class TournamentSerializer(serializers.ModelSerializer):
+    registered_teams = serializers.IntegerField(read_only=True)
+    image = serializers.SerializerMethodField()
+    state = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Tournament
+        fields = [
+            'id', 'title', 'organizer', 'location', 'date',
+            'start_date', 'end_date',
+            'prize_pool', 'entry_fee', 'team_limit', 'registered_teams',
+            'format', 'description', 'rules', 'image',
+            'status', 'state', 'contact_phone', 'created_at'
+        ]
+        read_only_fields = ['registered_teams', 'created_at', 'state', 'status']
+
+    def get_image(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+
+    def get_state(self, obj):
+        from django.utils import timezone
+        today = timezone.localdate()
+        if not obj.start_date:
+            return obj.state
+        if today < obj.start_date:
+            return 'upcoming'
+        elif obj.end_date and today > obj.end_date:
+            return 'history'
+        else:
+            return 'ongoing'
+
+    def get_status(self, obj):
+        from django.utils import timezone
+        today = timezone.localdate()
+        if not obj.start_date:
+            return obj.status
+        if obj.end_date and today > obj.end_date:
+            return 'Completed'
+        elif today >= obj.start_date:
+            return 'Registration Closed'
+        else:
+            return 'Registration Open'
+
+
+class TournamentCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tournament
+        fields = [
+            'id', 'title', 'organizer', 'location', 'date',
+            'start_date', 'end_date',
+            'prize_pool', 'entry_fee', 'team_limit', 'format',
+            'description', 'rules', 'image', 'status', 'state', 'contact_phone'
+        ]
+
+
+class TournamentRegistrationSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    tournament_title = serializers.CharField(source='tournament.title', read_only=True)
+
+    class Meta:
+        model = TournamentRegistration
+        fields = [
+            'id', 'tournament', 'tournament_title', 'user_email',
+            'team_name', 'contact_phone', 'player_names', 'registered_at'
+        ]
+        read_only_fields = ['user_email', 'tournament_title', 'registered_at']
+
+    def validate(self, data):
+        tournament = data.get('tournament')
+        user = self.context['request'].user
+        if tournament.status != 'Registration Open':
+            raise serializers.ValidationError({'tournament': 'Registration is closed.'})
+        if tournament.registered_teams >= tournament.team_limit:
+            raise serializers.ValidationError({'tournament': 'Tournament is full.'})
+        if TournamentRegistration.objects.filter(tournament=tournament, user=user).exists():
+            raise serializers.ValidationError({'tournament': 'You have already registered.'})
+        return data
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return TournamentRegistration.objects.create(user=user, **validated_data)

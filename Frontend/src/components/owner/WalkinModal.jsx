@@ -44,7 +44,8 @@ export default function WalkInModal({ courts, onClose, onSuccess }) {
         customer_phone: form.customer_phone,
       });
       const data = res.data?.Result;
-      setSuccess(`✅ Booking confirmed! ${data.court} — ${data.time_slot} on ${data.booking_date}. Amount: Rs ${data.total_amount}`);
+      const timeStr = data.time_slot_detail ? `${data.time_slot_detail.start_time.slice(0, 5)} - ${data.time_slot_detail.end_time.slice(0, 5)}` : "";
+      setSuccess(`✅ Booking confirmed! ${data.court_name} — ${timeStr} on ${data.booking_date}. Amount: Rs ${data.total_amount}`);
       setForm({ court: "", time_slot: "", booking_date: "", customer_name: "", customer_phone: "" });
       setSlots([]);
       onSuccess();
