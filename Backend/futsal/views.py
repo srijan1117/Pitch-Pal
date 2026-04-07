@@ -586,7 +586,12 @@ class TournamentCreateView(APIView):
         if request.user.role not in ['admin', 'owner','superuser']:
             return api_response(is_success=False, error_message="Only admins and owners can create tournaments.", status_code=status.HTTP_403_FORBIDDEN)
 
-        serializer = TournamentCreateSerializer(data=request.data)
+        data = request.data.copy()
+        # Automatically set organizer for owners
+        if request.user.role == 'owner':
+            data['organizer'] = request.user.email
+
+        serializer = TournamentCreateSerializer(data=data)
         if serializer.is_valid():
             tournament = serializer.save()
             return api_response(is_success=True, result=TournamentSerializer(tournament, context={'request': request}).data, status_code=status.HTTP_201_CREATED)
@@ -606,13 +611,22 @@ class TournamentUpdateView(APIView):
     )
     def put(self, request, tournament_id):
         if request.user.role not in ['admin', 'superuser', 'owner']:
-            return api_response(is_success=False, error_message="Only admins and owners can create tournaments.", status_code=status.HTTP_403_FORBIDDEN)
+            return api_response(is_success=False, error_message="Only admins and owners can update tournaments.", status_code=status.HTTP_403_FORBIDDEN)
         
         try:
             tournament = Tournament.objects.get(pk=tournament_id)
         except Tournament.DoesNotExist:
             return api_response(is_success=False, error_message="Tournament not found.", status_code=status.HTTP_404_NOT_FOUND)
-        serializer = TournamentCreateSerializer(tournament, data=request.data, partial=True)
+        
+        # Ownership check for owners
+        if request.user.role == 'owner' and tournament.organizer != request.user.email:
+            return api_response(is_success=False, error_message="You do not have permission to edit this tournament.", status_code=status.HTTP_403_FORBIDDEN)
+
+        data = request.data.copy()
+        if request.user.role == 'owner':
+            data['organizer'] = request.user.email
+
+        serializer = TournamentCreateSerializer(tournament, data=data, partial=True)
         if serializer.is_valid():
             tournament = serializer.save()
             return api_response(is_success=True, result=TournamentSerializer(tournament, context={'request': request}).data, status_code=status.HTTP_200_OK)
@@ -627,12 +641,17 @@ class TournamentDeleteView(APIView):
     @swagger_auto_schema(operation_description="Delete a tournament (admin only).", tags=["Tournaments"])
     def delete(self, request, tournament_id):
         if request.user.role not in ['admin', 'superuser', 'owner']:
-            return api_response(is_success=False, error_message="Only admins and owners can create tournaments.", status_code=status.HTTP_403_FORBIDDEN)
+            return api_response(is_success=False, error_message="Only admins and owners can delete tournaments.", status_code=status.HTTP_403_FORBIDDEN)
         
         try:
             tournament = Tournament.objects.get(pk=tournament_id)
         except Tournament.DoesNotExist:
             return api_response(is_success=False, error_message="Tournament not found.", status_code=status.HTTP_404_NOT_FOUND)
+            
+        # Ownership check for owners
+        if request.user.role == 'owner' and tournament.organizer != request.user.email:
+            return api_response(is_success=False, error_message="You do not have permission to delete this tournament.", status_code=status.HTTP_403_FORBIDDEN)
+
         tournament.delete()
         return api_response(is_success=True, result={"message": "Tournament deleted."}, status_code=status.HTTP_200_OK)
  
@@ -680,6 +699,16 @@ class TournamentRegistrationsAdminView(APIView):
         serializer = TournamentRegistrationSerializer(registrations, many=True)
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
 
+class OwnerTournamentListView(APIView):
+    """Owner: list only their own tournaments."""
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, IsOwner]
+
+    @swagger_auto_schema(operation_description="List tournaments organized by the logged-in owner.", tags=["Tournaments"])
+    def get(self, request):
+        tournaments = Tournament.objects.filter(organizer=request.user.email).order_by('-created_at')
+        serializer = TournamentSerializer(tournaments, many=True, context={'request': request})
+        return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
 
 # ─────────────────────────────────────────────
 # PAYMENT VIEWS (Khalti)
