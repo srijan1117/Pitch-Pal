@@ -333,6 +333,51 @@ class TournamentCreateSerializer(serializers.ModelSerializer):
             'description', 'rules', 'image', 'status', 'state', 'contact_phone'
         ]
 
+    def to_internal_value(self, data):
+        import json
+
+        # Convert QueryDict to a standard mutable dict
+        if hasattr(data, 'dict'):
+            data = data.dict()
+        else:
+            data = data.copy()
+
+        # Handle "rules" being passed as a JSON string (from FormData) or plain text
+        if "rules" in data:
+            rules_raw = data.get("rules")
+            if isinstance(rules_raw, str):
+                try:
+                    # First check if it's a valid JSON list
+                    parsed_rules = json.loads(rules_raw)
+                    if isinstance(parsed_rules, list):
+                        data["rules"] = parsed_rules
+                    else:
+                        raise ValueError()
+                except (ValueError, TypeError, json.JSONDecodeError):
+                    # 🔥 Improved fallback
+                    cleaned = rules_raw.strip()
+                    # Remove brackets if user typed JSON-like string badly
+                    if cleaned.startswith("[") and cleaned.endswith("]"):
+                        cleaned = cleaned[1:-1]
+                    
+                    data["rules"] = [
+                        r.strip().strip('"').strip("'")
+                        for r in cleaned.split("\n")
+                        if r.strip()
+                    ]
+
+        # 🧹 Clean up empty strings to None (prevents validation errors for dates)
+        for field in ['start_date', 'end_date']:
+            if field in data and data[field] == "":
+                data[field] = None
+
+        # 🖼️ Ignore image if it's sent as a string (existing URL from frontend)
+        if 'image' in data and isinstance(data['image'], str):
+            # This happens during updates; we don't want to re-validate the URL as a file
+            data.pop('image')
+
+        return super().to_internal_value(data)
+
 
 class TournamentRegistrationSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source='user.email', read_only=True)
