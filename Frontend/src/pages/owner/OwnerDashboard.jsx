@@ -34,7 +34,7 @@ export default function OwnerDashboard() {
       const [courtsRes, bookingsRes, tournamentsRes] = await Promise.all([
         api.get("/futsal/courts/mine/"),
         api.get("/futsal/bookings/owner/"),
-        api.get("/futsal/tournaments/"),
+        api.get("/futsal/tournaments/mine/"),
       ]);
       setCourts(courtsRes.data?.Result || []);
       setBookings(bookingsRes.data?.Result || []);

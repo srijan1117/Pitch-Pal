@@ -1,13 +1,13 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { isSessionExpired, clearSession } from "../api/auth";
+import { isSessionExpired, clearSession, isLoggedIn } from "../api/auth";
 
 export default function AutoLogout() {
   const navigate = useNavigate();
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (isSessionExpired()) {
+      if (isLoggedIn() && isSessionExpired()) {
         clearInterval(interval);
         clearSession();
         alert("Your session has expired. Please log in again.");
