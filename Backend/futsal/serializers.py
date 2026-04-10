@@ -106,7 +106,7 @@ class BookingSerializer(serializers.ModelSerializer):
             court=court,
             time_slot=time_slot,
             booking_date=booking_date,
-        ).exclude(status=BookingStatusEnum.CANCELLED)
+        ).exclude(status__in=[BookingStatusEnum.CANCELLED, BookingStatusEnum.PENDING])
 
         if self.instance:
             existing = existing.exclude(pk=self.instance.pk)
@@ -176,7 +176,7 @@ class WalkinBookingSerializer(serializers.ModelSerializer):
             court=court,
             time_slot=time_slot,
             booking_date=booking_date
-        ).exclude(status=BookingStatusEnum.CANCELLED)
+        ).exclude(status__in=[BookingStatusEnum.CANCELLED, BookingStatusEnum.PENDING])
         
         if existing.exists():
             raise serializers.ValidationError('This slot is already booked.')
@@ -256,21 +256,46 @@ class WeeklyBookingSerializer(serializers.ModelSerializer):
 
 
 class KhaltiInitSerializer(serializers.Serializer):
-    booking_id = serializers.IntegerField()
+    booking_id = serializers.IntegerField(required=False, allow_null=True)
+    registration_id = serializers.IntegerField(required=False, allow_null=True)
 
-    def validate_booking_id(self, value):
-        try:
-            booking = Booking.objects.get(pk=value)
-        except Booking.DoesNotExist:
-            raise serializers.ValidationError('Booking not found.')
-        if booking.status == BookingStatusEnum.CANCELLED:
-            raise serializers.ValidationError('Cannot pay for a cancelled booking.')
-        return value
+    def validate(self, data):
+        booking_id = data.get('booking_id')
+        registration_id = data.get('registration_id')
+
+        if not booking_id and not registration_id:
+            raise serializers.ValidationError('Either booking_id or registration_id must be provided.')
+        if booking_id and registration_id:
+            raise serializers.ValidationError('Provide only one: booking_id or registration_id.')
+
+        if booking_id:
+            try:
+                booking = Booking.objects.get(pk=booking_id)
+                if booking.status == BookingStatusEnum.CANCELLED:
+                    raise serializers.ValidationError('Cannot pay for a cancelled booking.')
+            except Booking.DoesNotExist:
+                raise serializers.ValidationError({'booking_id': 'Booking not found.'})
+        
+        if registration_id:
+            try:
+                reg = TournamentRegistration.objects.get(pk=registration_id)
+                if reg.status == BookingStatusEnum.CANCELLED:
+                    raise serializers.ValidationError('Cannot pay for a cancelled registration.')
+            except TournamentRegistration.DoesNotExist:
+                raise serializers.ValidationError({'registration_id': 'Registration not found.'})
+
+        return data
 
 
 class KhaltiVerifySerializer(serializers.Serializer):
     pidx = serializers.CharField()
-    booking_id = serializers.IntegerField()
+    booking_id = serializers.IntegerField(required=False, allow_null=True)
+    registration_id = serializers.IntegerField(required=False, allow_null=True)
+
+    def validate(self, data):
+        if not data.get('booking_id') and not data.get('registration_id'):
+            raise serializers.ValidationError('Either booking_id or registration_id must be provided.')
+        return data
 
 
 class TournamentSerializer(serializers.ModelSerializer):
