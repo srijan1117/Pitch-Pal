@@ -6,6 +6,7 @@ import { Star, MapPin, Clock, Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 import { isLoggedIn } from "../api/auth";
+import KhaltiPaymentModal from "../components/KhaltiPaymentModal";
 
 export default function FutsalDetail() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function FutsalDetail() {
   const [booking, setBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState("");
   const [bookingError, setBookingError] = useState("");
+  const [payingBooking, setPayingBooking] = useState(null);
 
   // Review states
   const [completedBooking, setCompletedBooking] = useState(null);
@@ -121,19 +123,21 @@ export default function FutsalDetail() {
 
     try {
       if (repeatWeekly) {
-        await api.post("/futsal/bookings/weekly/create/", {
+        const res = await api.post("/futsal/bookings/weekly/create/", {
           court: parseInt(id),
           time_slot: parseInt(selectedSlot),
           start_date: formatDate(selectedDate),
         });
         setBookingSuccess("Weekly booking confirmed! This slot will repeat every week.");
+        // Note: Weekly bookings might also need payment, but for now we focus on single ones.
       } else {
-        await api.post("/futsal/bookings/create/", {
+        const res = await api.post("/futsal/bookings/create/", {
           court: parseInt(id),
           time_slot: parseInt(selectedSlot),
           booking_date: formatDate(selectedDate),
         });
-        setBookingSuccess("Booking confirmed! Check your bookings page.");
+        setBookingSuccess("Booking confirmed! Redirecting to payment...");
+        setPayingBooking(res.data?.Result);
       }
 
       setSelectedSlot("");
@@ -483,10 +487,17 @@ export default function FutsalDetail() {
             <div className="mt-16">
               <FeaturedFutsals excludeId={parseInt(id)} />
             </div>
-
           </div>
         </main>
         <Footer />
+
+        {/* Khalti Payment Modal */}
+        {payingBooking && (
+          <KhaltiPaymentModal
+            booking={payingBooking}
+            onClose={() => setPayingBooking(null)}
+          />
+        )}
       </div>
     );
   }

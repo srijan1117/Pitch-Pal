@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Footer } from "../components/Footer";
 import api from "../api/axios";
 import { isLoggedIn } from "../api/auth";
+import KhaltiPaymentModal from "../components/KhaltiPaymentModal";
 
 export default function TournamentDetail() {
   const { id } = useParams();
@@ -20,6 +21,7 @@ export default function TournamentDetail() {
   const [registering, setRegistering] = useState(false);
   const [regSuccess, setRegSuccess] = useState("");
   const [regError, setRegError] = useState("");
+  const [payingRegistration, setPayingRegistration] = useState(null);
 
   useEffect(() => {
     api.get(`/futsal/tournaments/${id}/`)
@@ -43,17 +45,18 @@ export default function TournamentDetail() {
     setRegSuccess("");
 
     try {
-      await api.post("/futsal/tournaments/register/", {
+      const res = await api.post("/futsal/tournaments/register/", {
         tournament: parseInt(id),
         team_name: teamName,
         contact_phone: contactPhone,
         player_names: playerNames.filter(p => p.trim() !== ""),
       });
-      setRegSuccess("Registration successful! Your team has been registered.");
+      setRegSuccess("Registration successful! Redirecting to payment...");
+      setPayingRegistration(res.data?.Result);
       setIsModalOpen(false);
       // Refresh tournament data to update registered_teams count
-      const res = await api.get(`/futsal/tournaments/${id}/`);
-      setTournament(res.data?.Result);
+      const tournamentRes = await api.get(`/futsal/tournaments/${id}/`);
+      setTournament(tournamentRes.data?.Result);
     } catch (err) {
       const msg = err?.response?.data?.ErrorMessage;
       setRegError(typeof msg === "string" ? msg : JSON.stringify(msg) || "Registration failed.");
@@ -282,6 +285,14 @@ export default function TournamentDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Khalti Payment Modal */}
+      {payingRegistration && (
+        <KhaltiPaymentModal
+          registration={payingRegistration}
+          onClose={() => setPayingRegistration(null)}
+        />
       )}
     </div>
   );
