@@ -714,8 +714,20 @@ class OwnerTournamentListView(APIView):
 # PAYMENT VIEWS (Khalti)
 # ─────────────────────────────────────────────
 
+# USE a.khalti.com for Sandbox and pay.khalti.com for Production
 KHALTI_INITIATE_URL = "https://a.khalti.com/api/v2/epayment/initiate/"
 KHALTI_LOOKUP_URL = "https://a.khalti.com/api/v2/epayment/lookup/"
+
+def parse_khalti_amount(amount_str):
+    """Parses 'Rs 500' or '500' to 500 (float/decimal)."""
+    if not amount_str:
+        return 0
+    # Remove 'Rs', 'Rs.', ',', and whitespace
+    clean_str = amount_str.replace('Rs', '').replace('Rs.', '').replace(',', '').strip()
+    try:
+        return float(clean_str)
+    except (ValueError, TypeError):
+        return 0
 
 
 class KhaltiInitiateView(APIView):
@@ -729,21 +741,43 @@ class KhaltiInitiateView(APIView):
         tags=["Payment"]
     )
     def post(self, request):
+        print("KHALTI INITIATE REQUEST RECEIVED:", request.data)
         serializer = KhaltiInitSerializer(data=request.data)
         if not serializer.is_valid():
             return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
-        booking_id = serializer.validated_data['booking_id']
-        try:
-            booking = Booking.objects.get(pk=booking_id, user=request.user)
-        except Booking.DoesNotExist:
-            return api_response(is_success=False, error_message="Booking not found.", status_code=status.HTTP_404_NOT_FOUND)
+        booking_id = serializer.validated_data.get('booking_id')
+        registration_id = serializer.validated_data.get('registration_id')
+        
+        target_obj = None
+        amount = 0
+        order_name = ""
+        order_id = ""
 
-        # Create or get existing pending payment
-        payment, created = Payment.objects.get_or_create(
-            booking=booking,
-            defaults={'amount': booking.total_amount, 'payment_method': 'khalti'}
-        )
+        if booking_id:
+            try:
+                target_obj = Booking.objects.get(pk=booking_id, user=request.user)
+                amount = target_obj.total_amount
+                order_name = f"Booking at {target_obj.court.name}"
+                order_id = f"BK-{target_obj.id}"
+                payment, _ = Payment.objects.get_or_create(
+                    booking=target_obj,
+                    defaults={'amount': amount, 'payment_method': 'khalti'}
+                )
+            except Booking.DoesNotExist:
+                return api_response(is_success=False, error_message="Booking not found.", status_code=status.HTTP_404_NOT_FOUND)
+        else:
+            try:
+                target_obj = TournamentRegistration.objects.get(pk=registration_id, user=request.user)
+                amount = parse_khalti_amount(target_obj.tournament.entry_fee)
+                order_name = f"Tournament: {target_obj.tournament.title}"
+                order_id = f"REG-{target_obj.id}"
+                payment, _ = Payment.objects.get_or_create(
+                    tournament_registration=target_obj,
+                    defaults={'amount': amount, 'payment_method': 'khalti'}
+                )
+            except TournamentRegistration.DoesNotExist:
+                return api_response(is_success=False, error_message="Registration not found.", status_code=status.HTTP_404_NOT_FOUND)
 
         if payment.status == PaymentStatusEnum.SUCCESS:
             return api_response(is_success=False, error_message="Payment already completed.", status_code=status.HTTP_400_BAD_REQUEST)
@@ -751,13 +785,13 @@ class KhaltiInitiateView(APIView):
         khalti_payload = {
             "return_url": settings.KHALTI_RETURN_URL,
             "website_url": settings.KHALTI_WEBSITE_URL,
-            "amount": int(booking.total_amount * 100),  # in paisa
-            "purchase_order_id": str(booking.id),
-            "purchase_order_name": f"Booking at {booking.court.name}",
+            "amount": int(amount * 100),  # in paisa
+            "purchase_order_id": order_id,
+            "purchase_order_name": order_name,
             "customer_info": {
-                "name": booking.user.email,
-                "email": booking.user.email,
-                "phone": booking.user.phone_number,
+                "name": request.user.email,
+                "email": request.user.email,
+                "phone": request.user.phone_number or "9800000000",
             },
         }
 
@@ -769,6 +803,7 @@ class KhaltiInitiateView(APIView):
         try:
             response = requests.post(KHALTI_INITIATE_URL, json=khalti_payload, headers=headers)
             resp_data = response.json()
+            print("KHALTI DEBUG RESPONSE:", resp_data)
 
             if response.status_code == 200:
                 payment.pidx = resp_data.get('pidx')
@@ -778,7 +813,7 @@ class KhaltiInitiateView(APIView):
                     result={
                         "payment_url": resp_data.get('payment_url'),
                         "pidx": resp_data.get('pidx'),
-                        "booking_id": booking.id,
+                        "order_id": order_id,
                     },
                     status_code=status.HTTP_200_OK
                 )
@@ -804,10 +839,14 @@ class KhaltiVerifyView(APIView):
             return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
         pidx = serializer.validated_data['pidx']
-        booking_id = serializer.validated_data['booking_id']
+        booking_id = serializer.validated_data.get('booking_id')
+        registration_id = serializer.validated_data.get('registration_id')
 
         try:
-            payment = Payment.objects.get(pidx=pidx, booking__id=booking_id)
+            if booking_id:
+                payment = Payment.objects.get(pidx=pidx, booking__id=booking_id)
+            else:
+                payment = Payment.objects.get(pidx=pidx, tournament_registration__id=registration_id)
         except Payment.DoesNotExist:
             return api_response(is_success=False, error_message="Payment record not found.", status_code=status.HTTP_404_NOT_FOUND)
 
@@ -826,14 +865,40 @@ class KhaltiVerifyView(APIView):
                 payment.paid_at = timezone.now()
                 payment.save()
 
-                # Confirm the booking
-                booking = payment.booking
-                booking.status = BookingStatusEnum.CONFIRMED
-                booking.save()
+                # Confirm the target object
+                if payment.booking:
+                    # ✅ Final check: Is it still available? (exclude self and cancelled/pending)
+                    conflict = Booking.objects.filter(
+                        court=payment.booking.court,
+                        time_slot=payment.booking.time_slot,
+                        booking_date=payment.booking.booking_date,
+                        status__in=[BookingStatusEnum.CONFIRMED, BookingStatusEnum.COMPLETED]
+                    ).exclude(pk=payment.booking.id)
+
+                    if conflict.exists():
+                        payment.status = PaymentStatusEnum.FAILED # Or keep success but booking failed
+                        payment.save()
+                        return api_response(
+                            is_success=False, 
+                            error_message="Slot was taken by a faster payment or walk-in while your transaction was processing. Please contact support for a refund.",
+                            status_code=status.HTTP_409_CONFLICT
+                        )
+
+                    payment.booking.status = BookingStatusEnum.CONFIRMED
+                    payment.booking.save()
+                    msg = "Payment verified. Booking confirmed."
+                    tid = payment.booking.id
+                elif payment.tournament_registration:
+                    # (Tournament registration doesn't usually have a single slot conflict logic like this, 
+                    # but we could check team_limit here if needed)
+                    payment.tournament_registration.status = BookingStatusEnum.CONFIRMED
+                    payment.tournament_registration.save()
+                    msg = "Payment verified. Tournament registration confirmed."
+                    tid = payment.tournament_registration.id
 
                 return api_response(
                     is_success=True,
-                    result={"message": "Payment verified. Booking confirmed.", "booking_id": booking.id},
+                    result={"message": msg, "id": tid},
                     status_code=status.HTTP_200_OK
                 )
             else:

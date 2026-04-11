@@ -112,7 +112,14 @@ class PaymentStatusEnum(models.TextChoices):
 
 
 class Payment(models.Model):
-    booking = models.OneToOneField(Booking, on_delete=models.CASCADE, related_name='payment')
+    booking = models.OneToOneField(
+        Booking, on_delete=models.CASCADE, related_name='payment',
+        null=True, blank=True
+    )
+    tournament_registration = models.OneToOneField(
+        'TournamentRegistration', on_delete=models.CASCADE, related_name='payment',
+        null=True, blank=True
+    )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(max_length=50, default='khalti')
     pidx = models.CharField(max_length=255, blank=True, null=True)
@@ -125,8 +132,19 @@ class Payment(models.Model):
     paid_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def clean(self):
+        if not self.booking and not self.tournament_registration:
+            raise ValidationError('Payment must be linked to either a booking or a tournament registration.')
+        if self.booking and self.tournament_registration:
+            raise ValidationError('Payment cannot be linked to both a booking and a tournament registration.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Payment#{self.id} for Booking#{self.booking.id} - {self.status}"
+        target = f"Booking#{self.booking.id}" if self.booking else f"Reg#{self.tournament_registration.id}"
+        return f"Payment#{self.id} for {target} - {self.status}"
 
 
 class Review(models.Model):
@@ -202,6 +220,11 @@ class TournamentRegistration(models.Model):
     team_name = models.CharField(max_length=100)
     contact_phone = models.CharField(max_length=20)
     player_names = models.JSONField(default=list)
+    status = models.CharField(
+        max_length=20,
+        choices=BookingStatusEnum.choices,
+        default=BookingStatusEnum.PENDING
+    )
     registered_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
