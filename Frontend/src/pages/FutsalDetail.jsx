@@ -128,15 +128,15 @@ export default function FutsalDetail() {
           time_slot: parseInt(selectedSlot),
           start_date: formatDate(selectedDate),
         });
-        setBookingSuccess("Weekly booking confirmed! This slot will repeat every week.");
-        // Note: Weekly bookings might also need payment, but for now we focus on single ones.
+        setBookingSuccess("Weekly booking initiated. Please complete payment.");
+        setPayingBooking(res.data?.Result);
       } else {
         const res = await api.post("/futsal/bookings/create/", {
           court: parseInt(id),
           time_slot: parseInt(selectedSlot),
           booking_date: formatDate(selectedDate),
         });
-        setBookingSuccess("Booking confirmed! Redirecting to payment...");
+        setBookingSuccess("Booking initiated. Please complete payment.");
         setPayingBooking(res.data?.Result);
       }
 
@@ -352,19 +352,34 @@ export default function FutsalDetail() {
                   <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4">No available slots for this date.</p>
                 ) : (
                   <div className="flex flex-wrap gap-3">
-                    {slots.map((slot) => (
-                      <button
-                        key={slot.id}
-                        onClick={() => setSelectedSlot(slot.id.toString())}
-                        className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${selectedSlot === slot.id.toString()
-                            ? "bg-green-600 text-white border-green-600"
-                            : "bg-white border-gray-200 hover:border-green-500 text-gray-700"
+                    {slots.map((slot) => {
+                      const isUnavailable = !slot.is_available || slot.is_booked;
+                      return (
+                        <button
+                          key={slot.id}
+                          onClick={() => !isUnavailable && setSelectedSlot(slot.id.toString())}
+                          disabled={isUnavailable}
+                          className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                            isUnavailable
+                              ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                              : selectedSlot === slot.id.toString()
+                              ? "bg-green-600 text-white border-green-600"
+                              : "bg-white border-gray-200 hover:border-green-500 text-gray-700"
                           }`}
-                      >
-                        {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
-                        {slot.price && <span className="ml-2 text-xs opacity-80">Rs {slot.price}</span>}
-                      </button>
-                    ))}
+                        >
+                          <div className="flex flex-col items-center">
+                            <span>{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}</span>
+                            {isUnavailable ? (
+                              <span className="text-[10px] uppercase font-bold text-gray-400">
+                                {slot.is_booked ? "Booked" : "Disabled"}
+                              </span>
+                            ) : (
+                              slot.price && <span className="text-[10px] opacity-80">Rs {slot.price}</span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -494,8 +509,12 @@ export default function FutsalDetail() {
         {/* Khalti Payment Modal */}
         {payingBooking && (
           <KhaltiPaymentModal
-            booking={payingBooking}
-            onClose={() => setPayingBooking(null)}
+            booking={!payingBooking.start_date ? payingBooking : null}
+            weeklyBooking={payingBooking.start_date ? payingBooking : null}
+            onClose={() => {
+              setPayingBooking(null);
+              setBookingSuccess(""); // Clear the message when modal is closed
+            }}
           />
         )}
       </div>

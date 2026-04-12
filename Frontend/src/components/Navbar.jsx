@@ -14,6 +14,7 @@ export default function Navbar() {
 
   const navigate = useNavigate();
   const loggedIn = isLoggedIn();
+  const currentRole = localStorage.getItem("role")?.toLowerCase();
 
   // Fetch logged-in user info
   useEffect(() => {
@@ -21,7 +22,6 @@ export default function Navbar() {
     api.get("/accounts/user/profile/")
       .then(res => {
         const profile = res.data?.Result;
-        // Also get email from token stored role
         const email = localStorage.getItem("email") || "";
         const role = localStorage.getItem("role") || "";
         setUser({ email, role, ...profile });
@@ -62,7 +62,10 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-8">
             <NavLink to="/home" className={linkClass}>Home</NavLink>
             <NavLink to="/browse" className={linkClass}>Browse Futsal Courts</NavLink>
-            {loggedIn && (
+            {loggedIn && currentRole === "owner" && (
+              <NavLink to="/owner" className={linkClass}>Owner Dashboard</NavLink>
+            )}
+            {loggedIn && currentRole === "user" && (
               <NavLink to="/bookings" className={linkClass}>My Bookings</NavLink>
             )}
             <NavLink to="/tournaments" className={linkClass}>Tournaments</NavLink>
@@ -123,7 +126,10 @@ export default function Navbar() {
           <div className="md:hidden py-4 space-y-3 border-t border-gray-200">
             <NavLink to="/home" className={mobileLinkClass} onClick={() => setIsMenuOpen(false)}>Home</NavLink>
             <NavLink to="/browse" className={mobileLinkClass} onClick={() => setIsMenuOpen(false)}>Browse Futsal Courts</NavLink>
-            {loggedIn && (
+            {loggedIn && currentRole === "owner" && (
+              <NavLink to="/owner" className={mobileLinkClass} onClick={() => setIsMenuOpen(false)}>Owner Dashboard</NavLink>
+            )}
+            {loggedIn && currentRole === "user" && (
               <NavLink to="/bookings" className={mobileLinkClass} onClick={() => setIsMenuOpen(false)}>My Bookings</NavLink>
             )}
             <NavLink to="/tournaments" className={mobileLinkClass} onClick={() => setIsMenuOpen(false)}>Tournaments</NavLink>

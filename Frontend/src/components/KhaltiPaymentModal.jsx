@@ -1,27 +1,33 @@
-import { X, ShieldCheck, Ticket, Calendar, MapPin } from "lucide-react";
+import { X, ShieldCheck, Ticket, Calendar, MapPin, RefreshCw } from "lucide-react";
 import { useState } from "react";
-import { initiateKhaltiPayment, initiateTournamentPayment } from "../api/payment";
+import { initiateKhaltiPayment, initiateTournamentPayment, initiateWeeklyPayment } from "../api/payment";
 
-export default function KhaltiPaymentModal({ booking, registration, onClose }) {
+export default function KhaltiPaymentModal({ booking, registration, weeklyBooking, onClose }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const isTourney = !!registration;
-  const data = isTourney ? registration : booking;
-  
+  const isWeekly = !!weeklyBooking;
+  const data = isTourney ? registration : (isWeekly ? weeklyBooking : booking);
+
   // Format entry fee if it's from tournament (it's often "Rs 500")
-  const displayAmount = isTourney 
+  const displayAmount = isTourney
     ? (data.tournament_detail?.entry_fee || data.tournament?.entry_fee || "N/A")
-    : `Rs ${data.total_amount}`;
+    : (isWeekly ? "Rs (First 4 Weeks)" : `Rs ${data.total_amount}`);
 
   const handlePayment = async () => {
     setLoading(true);
     setError("");
     try {
-      const result = isTourney 
-        ? await initiateTournamentPayment(data.id)
-        : await initiateKhaltiPayment(data.id);
-      
+      let result;
+      if (isTourney) {
+        result = await initiateTournamentPayment(data.id);
+      } else if (isWeekly) {
+        result = await initiateWeeklyPayment(data.id);
+      } else {
+        result = await initiateKhaltiPayment(data.id);
+      }
+
       const isSuccess = result.IsSuccess ?? result.is_success;
       const resData = result.Result ?? result.result;
 
@@ -47,12 +53,12 @@ export default function KhaltiPaymentModal({ booking, registration, onClose }) {
             <div className="absolute -top-10 -left-10 w-40 h-40 bg-white rounded-full blur-3xl"></div>
             <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-green-400 rounded-full blur-3xl"></div>
           </div>
-          <img 
-            src="https://khalti.com/static/img/logo1.png" 
-            alt="Khalti" 
-            className="h-10 relative z-10 brightness-0 invert" 
+          <img
+            src="https://khalti.com/static/img/logo1.png"
+            alt="Khalti"
+            className="h-10 relative z-10 brightness-0 invert"
           />
-          <button 
+          <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
           >
@@ -64,17 +70,17 @@ export default function KhaltiPaymentModal({ booking, registration, onClose }) {
         <div className="p-8">
           <div className="mb-8 text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Confirm Payment</h2>
-            <p className="text-gray-500 text-sm">You are about to pay for your {isTourney ? "tournament participation" : "booking"}.</p>
+            <p className="text-gray-500 text-sm">You are about to pay for your {isTourney ? "tournament participation" : (isWeekly ? "weekly recurring booking" : "booking")}.</p>
           </div>
 
           <div className="bg-gray-50 rounded-2xl p-6 mb-8 space-y-4">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
-                {isTourney ? <Ticket className="text-green-600 w-5 h-5" /> : <Calendar className="text-green-600 w-5 h-5" />}
+                {isTourney ? <Ticket className="text-green-600 w-5 h-5" /> : (isWeekly ? <RefreshCw className="text-green-600 w-5 h-5" /> : <Calendar className="text-green-600 w-5 h-5" />)}
               </div>
               <div>
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-0.5">
-                  {isTourney ? "Tournament" : "Court"}
+                  {isTourney ? "Tournament" : (isWeekly ? "Weekly Schedule" : "Court")}
                 </p>
                 <p className="font-bold text-gray-900 line-clamp-1">
                   {isTourney ? (data.tournament_title || data.tournament?.title) : (data.court_name || data.court_detail?.name)}

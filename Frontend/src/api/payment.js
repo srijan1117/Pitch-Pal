@@ -7,6 +7,13 @@ export const initiateKhaltiPayment = async (bookingId) => {
   return response.data;
 };
 
+export const initiateWeeklyPayment = async (weeklyBookingId) => {
+  const response = await api.post("/futsal/payment/khalti/initiate/", {
+    weekly_booking_id: weeklyBookingId,
+  });
+  return response.data;
+};
+
 export const initiateTournamentPayment = async (registrationId) => {
   const response = await api.post("/futsal/payment/khalti/initiate/", {
     registration_id: registrationId,

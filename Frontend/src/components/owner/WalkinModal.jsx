@@ -101,20 +101,32 @@ export default function WalkInModal({ courts, onClose, onSuccess }) {
             <p className="text-xs text-amber-600 bg-amber-50 p-3 rounded-lg">No available slots for this date.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {slots.map(slot => (
-                <button
-                  key={slot.id}
-                  onClick={() => setForm({ ...form, time_slot: slot.id.toString() })}
-                  className={`px-3 py-2 rounded-lg border text-sm font-medium transition ${
-                    form.time_slot === slot.id.toString()
-                      ? "bg-green-600 text-white border-green-600"
-                      : "bg-white border-gray-200 hover:border-green-500 text-gray-700"
-                  }`}
-                >
-                  {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
-                  {slot.price && <span className="ml-1 text-xs opacity-80">Rs {slot.price}</span>}
-                </button>
-              ))}
+              {slots.map(slot => {
+                const isUnavailable = !slot.is_available || slot.is_booked;
+                return (
+                  <button
+                    key={slot.id}
+                    onClick={() => !isUnavailable && setForm({ ...form, time_slot: slot.id.toString() })}
+                    disabled={isUnavailable}
+                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition ${
+                      isUnavailable
+                        ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                        : form.time_slot === slot.id.toString()
+                        ? "bg-green-600 text-white border-green-600"
+                        : "bg-white border-gray-200 hover:border-green-500 text-gray-700"
+                    }`}
+                  >
+                    <div className="flex flex-col items-center">
+                      <span>{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}</span>
+                      {isUnavailable && (
+                        <span className="text-[9px] uppercase font-bold text-gray-400">
+                          {slot.is_booked ? "Booked" : "Disabled"}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

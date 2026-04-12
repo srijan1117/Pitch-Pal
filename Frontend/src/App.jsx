@@ -49,15 +49,6 @@ export default function App() {
 
         {/* Owner Dashboard — NO global navbar, own layout */}
         <Route
-          path="/owner"
-          element={
-            <ProtectedRoute allowedRoles={["owner"]}>
-              <OwnerDashboard />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
           path="/owner/*"
           element={
             <ProtectedRoute allowedRoles={["owner"]}>

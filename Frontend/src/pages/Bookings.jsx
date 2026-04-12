@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Footer } from "../components/Footer";
 import { FeaturedFutsals } from "../components/FeaturedFutsals";
 import api from "../api/axios";
+import CancelBookingModal from "../components/CancelBookingModal";
 
 function StatusBadge({ status }) {
   const configs = {
@@ -170,6 +171,8 @@ export default function Bookings() {
   const [courts, setCourts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
   const navigate = useNavigate();
 
   const fetchBookings = useCallback(async () => {
@@ -207,16 +210,23 @@ export default function Bookings() {
     fetchBookings();
   }, [fetchBookings]);
 
-  const handleCancel = async (bookingId) => {
-    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
-    setCancellingId(bookingId);
+  const handleCancelClick = (bookingId) => {
+    setSelectedBookingId(bookingId);
+    setIsCancelModalOpen(true);
+  };
+
+  const confirmCancel = async () => {
+    if (!selectedBookingId) return;
+    setCancellingId(selectedBookingId);
     try {
-      await api.patch(`/futsal/bookings/${bookingId}/cancel/`);
+      await api.post(`/futsal/bookings/${selectedBookingId}/cancel/`);
+      setIsCancelModalOpen(false);
       fetchBookings();
     } catch (err) {
       alert("Failed to cancel booking. Please try again.");
     } finally {
       setCancellingId(null);
+      setSelectedBookingId(null);
     }
   };
 
@@ -288,11 +298,21 @@ export default function Bookings() {
                 ))}
               </div>
             ) : tab === "upcoming" ? (
-              <BookingList bookings={upcoming} type="upcoming" onCancel={handleCancel} />
+              <BookingList bookings={upcoming} type="upcoming" onCancel={handleCancelClick} />
             ) : (
-              <BookingList bookings={history} type="history" onCancel={handleCancel} />
+              <BookingList bookings={history} type="history" onCancel={handleCancelClick} />
             )}
           </div>
+
+          <CancelBookingModal
+            isOpen={isCancelModalOpen}
+            onClose={() => {
+              setIsCancelModalOpen(false);
+              setSelectedBookingId(null);
+            }}
+            onConfirm={confirmCancel}
+            bookingId={selectedBookingId}
+          />
 
           {/* Recommended Courts */}
           <div className="mt-24 border-t border-gray-200 pt-16">
