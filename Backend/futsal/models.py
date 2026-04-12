@@ -97,11 +97,16 @@ class WeeklyBooking(models.Model):
     time_slot = models.ForeignKey(TimeSlot, on_delete=models.CASCADE, related_name='weekly_bookings')
     start_date = models.DateField()
     end_date = models.DateField(blank=True, null=True)
+    status = models.CharField(
+        max_length=20,
+        choices=BookingStatusEnum.choices,
+        default=BookingStatusEnum.PENDING
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Weekly booking by {self.user.email} at {self.court.name}"
+        return f"Weekly booking by {self.user.email} at {self.court.name} - {self.status}"
     
     
 class PaymentStatusEnum(models.TextChoices):
@@ -120,6 +125,10 @@ class Payment(models.Model):
         'TournamentRegistration', on_delete=models.CASCADE, related_name='payment',
         null=True, blank=True
     )
+    weekly_booking = models.OneToOneField(
+        WeeklyBooking, on_delete=models.CASCADE, related_name='payment',
+        null=True, blank=True
+    )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(max_length=50, default='khalti')
     pidx = models.CharField(max_length=255, blank=True, null=True)
@@ -133,17 +142,24 @@ class Payment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self):
-        if not self.booking and not self.tournament_registration:
-            raise ValidationError('Payment must be linked to either a booking or a tournament registration.')
-        if self.booking and self.tournament_registration:
-            raise ValidationError('Payment cannot be linked to both a booking and a tournament registration.')
+        links = [self.booking, self.tournament_registration, self.weekly_booking]
+        count = sum(1 for link in links if link is not None)
+        if count == 0:
+            raise ValidationError('Payment must be linked to a booking, tournament registration, or weekly booking.')
+        if count > 1:
+            raise ValidationError('Payment cannot be linked to more than one object.')
 
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
 
     def __str__(self):
-        target = f"Booking#{self.booking.id}" if self.booking else f"Reg#{self.tournament_registration.id}"
+        if self.booking:
+            target = f"Booking#{self.booking.id}"
+        elif self.tournament_registration:
+            target = f"Reg#{self.tournament_registration.id}"
+        else:
+            target = f"Weekly#{self.weekly_booking.id}"
         return f"Payment#{self.id} for {target} - {self.status}"
 
 
@@ -188,11 +204,13 @@ class TournamentStatusEnum(models.TextChoices):
     COMPLETED = 'Completed', 'Completed'
 
 class Tournament(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='organized_tournaments', null=True, blank=True)
     title = models.CharField(max_length=200)
-    organizer = models.CharField(max_length=200)
+    organizer = models.CharField(max_length=200) # Display name
     location = models.CharField(max_length=255)
     start_date = models.DateField(blank=True, null=True)  
     end_date = models.DateField(blank=True, null=True)
+    registration_deadline = models.DateTimeField(blank=True, null=True)
     date = models.CharField(max_length=100)
     prize_pool = models.CharField(max_length=100)
     entry_fee = models.CharField(max_length=100)

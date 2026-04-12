@@ -2,15 +2,21 @@ from rest_framework import serializers
 from futsal.models import Tournament, TournamentRegistration
 from futsal.models import (
     FutsalCourt, TimeSlot, Booking, Payment,
-    BookingStatusEnum, CourtImage, WeeklyBooking, Review
+    BookingStatusEnum, CourtImage, WeeklyBooking, Review, PaymentStatusEnum
 )
 from accounts.models import RoleEnum
 
 
 class TimeSlotSerializer(serializers.ModelSerializer):
+    is_booked = serializers.SerializerMethodField()
+
     class Meta:
         model = TimeSlot
-        fields = ['id', 'start_time', 'end_time', 'is_available', 'price']
+        fields = ['id', 'start_time', 'end_time', 'is_available', 'price', 'is_booked']
+
+    def get_is_booked(self, obj):
+        booked_ids = self.context.get('booked_slot_ids', [])
+        return obj.id in booked_ids
 
     def validate(self, data):
         if data['start_time'] >= data['end_time']:
@@ -102,17 +108,34 @@ class BookingSerializer(serializers.ModelSerializer):
         if not time_slot.is_available:
             raise serializers.ValidationError({'time_slot': 'This time slot is not available.'})
 
-        existing = Booking.objects.filter(
+        # Check for confirmed/completed bookings
+        existing_confirmed = Booking.objects.filter(
             court=court,
             time_slot=time_slot,
             booking_date=booking_date,
-        ).exclude(status__in=[BookingStatusEnum.CANCELLED, BookingStatusEnum.PENDING])
+            status__in=[BookingStatusEnum.CONFIRMED, BookingStatusEnum.COMPLETED]
+        )
+
+        # Check for very recent pending bookings (15-minute lock)
+        from datetime import timedelta
+        lock_time = timezone.now() - timedelta(minutes=15)
+        existing_pending = Booking.objects.filter(
+            court=court,
+            time_slot=time_slot,
+            booking_date=booking_date,
+            status=BookingStatusEnum.PENDING,
+            created_at__gte=lock_time
+        )
 
         if self.instance:
-            existing = existing.exclude(pk=self.instance.pk)
+            existing_confirmed = existing_confirmed.exclude(pk=self.instance.pk)
+            existing_pending = existing_pending.exclude(pk=self.instance.pk)
 
-        if existing.exists():
+        if existing_confirmed.exists():
             raise serializers.ValidationError('This slot is already booked for the selected date.')
+            
+        if existing_pending.exists():
+            raise serializers.ValidationError('This slot is currently being booked by another user. Please try again in 15 minutes.')
 
         return data
 
@@ -159,6 +182,8 @@ class BookingSerializer(serializers.ModelSerializer):
 
 
 class WalkinBookingSerializer(serializers.ModelSerializer):
+    court_name = serializers.CharField(source='court.name', read_only=True)
+    time_slot_detail = TimeSlotSerializer(source='time_slot', read_only=True)
     class Meta:
         model = Booking
         fields = ['court', 'time_slot', 'booking_date', 'customer_name', 'customer_phone']
@@ -252,37 +277,44 @@ class WeeklyBookingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WeeklyBooking
-        fields = ['id', 'user_email', 'court', 'court_name', 'time_slot', 'time_slot_detail', 'start_date', 'end_date', 'is_active', 'created_at']
+        fields = ['id', 'user_email', 'court', 'court_name', 'time_slot', 'time_slot_detail', 'start_date', 'end_date', 'status', 'is_active', 'created_at']
+        read_only_fields = ['user_email', 'court_name', 'status', 'created_at']
+
+    def validate(self, data):
+        court = data.get('court')
+        time_slot = data.get('time_slot')
+        start_date = data.get('start_date')
+
+        from django.utils import timezone
+        today = timezone.localdate()
+        if start_date < today:
+            raise serializers.ValidationError({'start_date': 'Start date cannot be in the past.'})
+
+        if time_slot and court and time_slot.court != court:
+            raise serializers.ValidationError({'time_slot': 'This time slot does not belong to the selected court.'})
+
+        return data
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return WeeklyBooking.objects.create(user=user, status=BookingStatusEnum.PENDING, **validated_data)
 
 
 class KhaltiInitSerializer(serializers.Serializer):
     booking_id = serializers.IntegerField(required=False, allow_null=True)
     registration_id = serializers.IntegerField(required=False, allow_null=True)
+    weekly_booking_id = serializers.IntegerField(required=False, allow_null=True)
 
     def validate(self, data):
         booking_id = data.get('booking_id')
         registration_id = data.get('registration_id')
+        weekly_booking_id = data.get('weekly_booking_id')
 
-        if not booking_id and not registration_id:
-            raise serializers.ValidationError('Either booking_id or registration_id must be provided.')
-        if booking_id and registration_id:
-            raise serializers.ValidationError('Provide only one: booking_id or registration_id.')
-
-        if booking_id:
-            try:
-                booking = Booking.objects.get(pk=booking_id)
-                if booking.status == BookingStatusEnum.CANCELLED:
-                    raise serializers.ValidationError('Cannot pay for a cancelled booking.')
-            except Booking.DoesNotExist:
-                raise serializers.ValidationError({'booking_id': 'Booking not found.'})
-        
-        if registration_id:
-            try:
-                reg = TournamentRegistration.objects.get(pk=registration_id)
-                if reg.status == BookingStatusEnum.CANCELLED:
-                    raise serializers.ValidationError('Cannot pay for a cancelled registration.')
-            except TournamentRegistration.DoesNotExist:
-                raise serializers.ValidationError({'registration_id': 'Registration not found.'})
+        count = sum(1 for x in [booking_id, registration_id, weekly_booking_id] if x is not None)
+        if count == 0:
+            raise serializers.ValidationError('One of booking_id, registration_id, or weekly_booking_id must be provided.')
+        if count > 1:
+            raise serializers.ValidationError('Provide only one of: booking_id, registration_id, or weekly_booking_id.')
 
         return data
 
@@ -291,136 +323,66 @@ class KhaltiVerifySerializer(serializers.Serializer):
     pidx = serializers.CharField()
     booking_id = serializers.IntegerField(required=False, allow_null=True)
     registration_id = serializers.IntegerField(required=False, allow_null=True)
+    weekly_booking_id = serializers.IntegerField(required=False, allow_null=True)
 
     def validate(self, data):
-        if not data.get('booking_id') and not data.get('registration_id'):
-            raise serializers.ValidationError('Either booking_id or registration_id must be provided.')
+        count = sum(1 for x in [data.get('booking_id'), data.get('registration_id'), data.get('weekly_booking_id')] if x is not None)
+        if count == 0:
+            raise serializers.ValidationError('One of booking_id, registration_id, or weekly_booking_id must be provided.')
         return data
 
 
 class TournamentSerializer(serializers.ModelSerializer):
     registered_teams = serializers.IntegerField(read_only=True)
     image = serializers.SerializerMethodField()
-    state = serializers.SerializerMethodField()
-    status = serializers.SerializerMethodField()
 
     class Meta:
         model = Tournament
         fields = [
-            'id', 'title', 'organizer', 'location', 'date',
-            'start_date', 'end_date',
-            'prize_pool', 'entry_fee', 'team_limit', 'registered_teams',
-            'format', 'description', 'rules', 'image',
-            'status', 'state', 'contact_phone', 'created_at'
+            'id', 'title', 'description', 'start_date', 'end_date',
+            'registration_deadline', 'entry_fee', 'prize_pool',
+            'team_limit', 'registered_teams', 'image', 'location',
+            'organizer', 'state', 'status', 'created_at', 'contact_phone', 'format'
         ]
-        read_only_fields = ['registered_teams', 'created_at', 'state', 'status']
 
     def get_image(self, obj):
         if obj.image:
             request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
+            if request: return request.build_absolute_uri(obj.image.url)
             return obj.image.url
         return None
-
-    def get_state(self, obj):
-        from django.utils import timezone
-        today = timezone.localdate()
-        if not obj.start_date:
-            return obj.state
-        if today < obj.start_date:
-            return 'upcoming'
-        elif obj.end_date and today > obj.end_date:
-            return 'history'
-        else:
-            return 'ongoing'
-
-    def get_status(self, obj):
-        from django.utils import timezone
-        today = timezone.localdate()
-        if not obj.start_date:
-            return obj.status
-        if obj.end_date and today > obj.end_date:
-            return 'Completed'
-        elif today >= obj.start_date:
-            return 'Registration Closed'
-        else:
-            return 'Registration Open'
 
 
 class TournamentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tournament
         fields = [
-            'id', 'title', 'organizer', 'location', 'date',
-            'start_date', 'end_date',
-            'prize_pool', 'entry_fee', 'team_limit', 'format',
-            'description', 'rules', 'image', 'status', 'state', 'contact_phone'
+            'title', 'description', 'start_date', 'end_date', 
+            'registration_deadline', 'entry_fee', 'prize_pool', 
+            'team_limit', 'location', 'image', 'organizer', 'format',
+            'contact_phone', 'date'
         ]
 
-    def to_internal_value(self, data):
-        import json
-
-        # Convert QueryDict to a standard mutable dict
-        if hasattr(data, 'dict'):
-            data = data.dict()
-        else:
-            data = data.copy()
-
-        # Handle "rules" being passed as a JSON string (from FormData) or plain text
-        if "rules" in data:
-            rules_raw = data.get("rules")
-            if isinstance(rules_raw, str):
-                try:
-                    # First check if it's a valid JSON list
-                    parsed_rules = json.loads(rules_raw)
-                    if isinstance(parsed_rules, list):
-                        data["rules"] = parsed_rules
-                    else:
-                        raise ValueError()
-                except (ValueError, TypeError, json.JSONDecodeError):
-                    # 🔥 Improved fallback
-                    cleaned = rules_raw.strip()
-                    # Remove brackets if user typed JSON-like string badly
-                    if cleaned.startswith("[") and cleaned.endswith("]"):
-                        cleaned = cleaned[1:-1]
-                    
-                    data["rules"] = [
-                        r.strip().strip('"').strip("'")
-                        for r in cleaned.split("\n")
-                        if r.strip()
-                    ]
-
-        # 🧹 Clean up empty strings to None (prevents validation errors for dates)
-        for field in ['start_date', 'end_date']:
-            if field in data and data[field] == "":
-                data[field] = None
-
-        # 🖼️ Ignore image if it's sent as a string (existing URL from frontend)
-        if 'image' in data and isinstance(data['image'], str):
-            # This happens during updates; we don't want to re-validate the URL as a file
-            data.pop('image')
-
-        return super().to_internal_value(data)
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return Tournament.objects.create(owner=user, **validated_data)
 
 
 class TournamentRegistrationSerializer(serializers.ModelSerializer):
-    user_email = serializers.EmailField(source='user.email', read_only=True)
     tournament_title = serializers.CharField(source='tournament.title', read_only=True)
+    user_email = serializers.EmailField(source='user.email', read_only=True)
 
     class Meta:
         model = TournamentRegistration
-        fields = [
-            'id', 'tournament', 'tournament_title', 'user_email',
-            'team_name', 'contact_phone', 'player_names', 'registered_at'
-        ]
-        read_only_fields = ['user_email', 'tournament_title', 'registered_at']
+        fields = ['id', 'tournament', 'tournament_title', 'user', 'user_email', 'team_name', 'contact_phone', 'status', 'registered_at', 'player_names']
+        read_only_fields = ['user', 'status', 'registered_at']
 
     def validate(self, data):
-        tournament = data.get('tournament')
         user = self.context['request'].user
-        if tournament.status != 'Registration Open':
-            raise serializers.ValidationError({'tournament': 'Registration is closed.'})
+        tournament = data.get('tournament')
+        from django.utils import timezone
+        if tournament.registration_deadline and timezone.now() > tournament.registration_deadline:
+            raise serializers.ValidationError({'tournament': 'Registration deadline has passed.'})
         if tournament.registered_teams >= tournament.team_limit:
             raise serializers.ValidationError({'tournament': 'Tournament is full.'})
         if TournamentRegistration.objects.filter(tournament=tournament, user=user).exists():
