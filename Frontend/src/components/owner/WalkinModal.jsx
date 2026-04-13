@@ -27,9 +27,12 @@ export default function WalkInModal({ courts, onClose, onSuccess }) {
       .catch(() => setSlots([]));
   }, [form.court, form.booking_date]);
 
+  const [submitted, setSubmitted] = useState(false);
+
   const handleSubmit = async () => {
+    setSubmitted(true);
     if (!form.court || !form.time_slot || !form.booking_date) {
-      setError("Court, time slot and date are required.");
+      setError("Please select a court, date, and time slot first.");
       return;
     }
     setLoading(true);
@@ -48,6 +51,7 @@ export default function WalkInModal({ courts, onClose, onSuccess }) {
       setSuccess(`✅ Booking confirmed! ${data.court_name} — ${timeStr} on ${data.booking_date}. Amount: Rs ${data.total_amount}`);
       setForm({ court: "", time_slot: "", booking_date: "", customer_name: "", customer_phone: "" });
       setSlots([]);
+      setSubmitted(false); // Reset on success
       onSuccess();
     } catch (err) {
       const msg = err?.response?.data?.ErrorMessage;
@@ -56,6 +60,8 @@ export default function WalkInModal({ courts, onClose, onSuccess }) {
       setLoading(false);
     }
   };
+
+  const isFieldMissing = (key) => submitted && !form[key];
 
   // Get today's date for min date
   const today = new Date().toISOString().split("T")[0];
@@ -67,11 +73,16 @@ export default function WalkInModal({ courts, onClose, onSuccess }) {
 
         {/* Court */}
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-1 block">Court *</label>
+          <label className="text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+            <span>Court *</span>
+            {isFieldMissing('court') && <span className="text-red-500 text-[10px] font-bold uppercase tracking-wider">Required</span>}
+          </label>
           <select
             value={form.court}
             onChange={e => setForm({ ...form, court: e.target.value, time_slot: "" })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white"
+            className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none bg-white transition-colors ${
+              isFieldMissing('court') ? "border-red-300 bg-red-50" : "border-gray-300"
+            }`}
           >
             <option value="">Select court</option>
             {courts.map(c => (
@@ -82,19 +93,27 @@ export default function WalkInModal({ courts, onClose, onSuccess }) {
 
         {/* Date */}
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-1 block">Booking Date *</label>
+          <label className="text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+            <span>Booking Date *</span>
+            {isFieldMissing('booking_date') && <span className="text-red-500 text-[10px] font-bold uppercase tracking-wider">Required</span>}
+          </label>
           <input
             type="date"
             min={today}
             value={form.booking_date}
             onChange={e => setForm({ ...form, booking_date: e.target.value, time_slot: "" })}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none"
+            className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-colors ${
+              isFieldMissing('booking_date') ? "border-red-300 bg-red-50" : "border-gray-300"
+            }`}
           />
         </div>
 
         {/* Time Slot */}
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-1 block">Time Slot *</label>
+          <label className="text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+            <span>Time Slot *</span>
+            {isFieldMissing('time_slot') && <span className="text-red-500 text-[10px] font-bold uppercase tracking-wider">Required</span>}
+          </label>
           {!form.court || !form.booking_date ? (
             <p className="text-xs text-gray-400 bg-gray-50 p-3 rounded-lg">Select a court and date first.</p>
           ) : slots.length === 0 ? (

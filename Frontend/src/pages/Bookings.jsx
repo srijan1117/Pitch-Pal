@@ -224,9 +224,15 @@ export default function Bookings() {
         };
       });
 
-      // Sort by date descending
+      // Sort by date descending, then ID descending
       const allEvents = [...enrichedBookings, ...normalizedTourneys].sort((a, b) => {
-        return new Date(b.booking_date) - new Date(a.booking_date);
+        const dateDiff = new Date(b.booking_date) - new Date(a.booking_date);
+        if (dateDiff !== 0) return dateDiff;
+        
+        // Use ID (extract numbers if it's #BK- or #REG-)
+        const idA = parseInt(String(a.id).replace(/\D/g, "")) || 0;
+        const idB = parseInt(String(b.id).replace(/\D/g, "")) || 0;
+        return idB - idA;
       });
 
       setBookings(allEvents);

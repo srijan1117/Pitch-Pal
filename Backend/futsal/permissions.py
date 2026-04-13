@@ -9,6 +9,12 @@ class IsOwner(BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and request.user.role == RoleEnum.OWNER
 
+    def has_object_permission(self, request, view, obj):
+        # Many models use 'owner' field (FutsalCourt, Tournament)
+        if hasattr(obj, 'owner') and obj.owner:
+            return obj.owner == request.user
+        return False
+
 
 class IsOwnerOfCourt(BasePermission):
     """Object-level: only the owner of the court can modify it."""

@@ -360,7 +360,7 @@ class TournamentSerializer(serializers.ModelSerializer):
             'registration_deadline', 'entry_fee', 'prize_pool',
             'team_limit', 'registered_teams', 'image', 'location',
             'organizer', 'state', 'status', 'created_at', 'contact_phone', 'format',
-            'user_registration_status'
+            'user_registration_status', 'date'
         ]
 
     def get_image(self, obj):
@@ -388,6 +388,22 @@ class TournamentCreateSerializer(serializers.ModelSerializer):
             'team_limit', 'location', 'image', 'organizer', 'format',
             'contact_phone', 'date'
         ]
+
+    def validate(self, data):
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        registration_deadline = data.get('registration_deadline')
+
+        if start_date and end_date and start_date > end_date:
+            raise serializers.ValidationError({'end_date': 'End date must be after start date.'})
+
+        if registration_deadline and start_date:
+            # registration_deadline is likely a datetime, start_date is a date.
+            # Convert registration_deadline to date for comparison or vice versa.
+            if registration_deadline.date() > start_date:
+                raise serializers.ValidationError({'registration_deadline': 'Registration deadline must be before or on the start date.'})
+
+        return data
 
     def create(self, validated_data):
         user = self.context['request'].user

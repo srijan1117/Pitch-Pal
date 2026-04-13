@@ -3,13 +3,20 @@ import Modal from "./Modal";
 import api from "../../api/axios";
 
 export default function TournamentModal({ tournament = null, onClose, onSuccess }) {
+  // Helper to ensure dates are in YYYY-MM-DD format for HTML date inputs
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    return dateStr.split("T")[0];
+  };
+
   const [form, setForm] = useState({
     title: tournament?.title || "",
     organizer: tournament?.organizer || (localStorage.getItem("role") === "owner" ? localStorage.getItem("email") : ""),
     location: tournament?.location || "",
     date: tournament?.date || "",
-    start_date: tournament?.start_date || "",
-    end_date: tournament?.end_date || "",
+    start_date: formatDate(tournament?.start_date),
+    end_date: formatDate(tournament?.end_date),
+    registration_deadline: formatDate(tournament?.registration_deadline),
     prize_pool: tournament?.prize_pool || "",
     entry_fee: tournament?.entry_fee || "",
     team_limit: tournament?.team_limit || "",
@@ -23,10 +30,24 @@ export default function TournamentModal({ tournament = null, onClose, onSuccess 
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async () => {
-    setLoading(true);
     setError("");
+    setSubmitted(true);
+
+    // Client-side validation for required fields
+    const requiredKeys = fields.filter(f => f.label.includes('*')).map(f => f.key);
+    requiredKeys.push('description'); // Also required
+
+    const isAnyEmpty = requiredKeys.some(key => !form[key] || String(form[key]).trim() === "");
+    
+    if (isAnyEmpty) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+
+    setLoading(true);
     try {
       const formData = new FormData();
       
@@ -35,7 +56,6 @@ export default function TournamentModal({ tournament = null, onClose, onSuccess 
         formData.append(k, v);
       });
       
-      // Only append image if a new file was selected (not null or a placeholder)
       if (image && image instanceof File) {
         formData.append("image", image);
       }
@@ -59,7 +79,6 @@ export default function TournamentModal({ tournament = null, onClose, onSuccess 
       setLoading(false);
     }
   };
-
   const fields = [
     { key: "title", label: "Title *" },
     { key: "organizer", label: "Organizer *" },
@@ -67,6 +86,7 @@ export default function TournamentModal({ tournament = null, onClose, onSuccess 
     { key: "date", label: "Date Label * (e.g. Apr 15 - Apr 20, 2026)" },
     { key: "start_date", label: "Start Date *", type: "date" },
     { key: "end_date", label: "End Date *", type: "date" },
+    { key: "registration_deadline", label: "Registration Deadline *", type: "date" },
     { key: "prize_pool", label: "Prize Pool * (e.g. Rs 1,00,000)" },
     { key: "entry_fee", label: "Entry Fee * (e.g. Rs 5,000)" },
     { key: "team_limit", label: "Team Limit *", type: "number" },
@@ -74,27 +94,41 @@ export default function TournamentModal({ tournament = null, onClose, onSuccess 
     { key: "contact_phone", label: "Contact Phone" },
   ];
 
+  const isFieldMissing = (key) => submitted && !form[key] && (key === 'description' || fields.find(f => f.key === key)?.label.includes('*'));
+
   return (
     <Modal title={tournament ? "Edit Tournament" : "Create Tournament"} onClose={onClose}>
       <div className="space-y-4">
         {fields.map(({ key, label, type }) => (
           <div key={key}>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">{label}</label>
+            <label className="text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+              <span>{label}</span>
+              {isFieldMissing(key) && <span className="text-red-500 text-[10px] font-bold uppercase tracking-wider">Required</span>}
+            </label>
             <input
               type={type || "text"}
               value={form[key]}
               onChange={e => setForm({ ...form, [key]: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none"
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-colors ${
+                isFieldMissing(key) ? "border-red-300 bg-red-50" : "border-gray-300"
+              }`}
             />
           </div>
         ))}
 
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-1 block">Description *</label>
-          <textarea value={form.description}
+          <label className="text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+            <span>Description *</span>
+            {isFieldMissing('description') && <span className="text-red-500 text-[10px] font-bold uppercase tracking-wider">Required</span>}
+          </label>
+          <textarea 
+            value={form.description}
             onChange={e => setForm({ ...form, description: e.target.value })}
             rows={3}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none resize-none" />
+            className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none resize-none transition-colors ${
+              isFieldMissing('description') ? "border-red-300 bg-red-50" : "border-gray-300"
+            }`} 
+          />
         </div>
 
         <div>

@@ -205,7 +205,7 @@ class UserBookingListView(generics.ListAPIView):
     swagger_tags = ['Bookings']
 
     def get_queryset(self):
-        return Booking.objects.filter(user=self.request.user).order_by('-booking_date')
+        return Booking.objects.filter(user=self.request.user).order_by('-booking_date', '-id')
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -253,7 +253,7 @@ class OwnerBookingListView(APIView):
 
     def get(self, request):
         courts = FutsalCourt.objects.filter(owner=request.user)
-        bookings = Booking.objects.filter(court__in=courts).order_by('-booking_date')
+        bookings = Booking.objects.filter(court__in=courts).order_by('-booking_date', '-id')
         serializer = BookingSerializer(bookings, many=True)
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
 
@@ -357,11 +357,25 @@ class TournamentUpdateView(generics.UpdateAPIView):
     lookup_url_kwarg = 'tournament_id'
     swagger_tags = ['Tournaments']
 
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        if serializer.is_valid():
+            self.perform_update(serializer)
+            return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
+        return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+
 class TournamentDeleteView(generics.DestroyAPIView):
     queryset = Tournament.objects.all()
     permission_classes = [IsAuthenticated, IsOwner]
     lookup_url_kwarg = 'tournament_id'
     swagger_tags = ['Tournaments']
+    
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return api_response(is_success=True, result="Tournament deleted successfully", status_code=status.HTTP_200_OK)
 
 class TournamentRegistrationCancelView(APIView):
     permission_classes = [IsAuthenticated]
@@ -423,7 +437,7 @@ class UserTournamentRegistrationsView(generics.ListAPIView):
     swagger_tags = ['Tournaments']
 
     def get_queryset(self):
-        return TournamentRegistration.objects.filter(user=self.request.user)
+        return TournamentRegistration.objects.filter(user=self.request.user).order_by('-id')
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
