@@ -335,6 +335,7 @@ class KhaltiVerifySerializer(serializers.Serializer):
 class TournamentSerializer(serializers.ModelSerializer):
     registered_teams = serializers.IntegerField(read_only=True)
     image = serializers.SerializerMethodField()
+    user_registration_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Tournament
@@ -342,7 +343,8 @@ class TournamentSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'start_date', 'end_date',
             'registration_deadline', 'entry_fee', 'prize_pool',
             'team_limit', 'registered_teams', 'image', 'location',
-            'organizer', 'state', 'status', 'created_at', 'contact_phone', 'format'
+            'organizer', 'state', 'status', 'created_at', 'contact_phone', 'format',
+            'user_registration_status'
         ]
 
     def get_image(self, obj):
@@ -350,6 +352,14 @@ class TournamentSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request: return request.build_absolute_uri(obj.image.url)
             return obj.image.url
+        return None
+
+    def get_user_registration_status(self, obj):
+        request = self.context.get('request')
+        if request and request.user and request.user.is_authenticated:
+            reg = obj.registrations.filter(user=request.user).first()
+            if reg:
+                return reg.status
         return None
 
 
@@ -371,11 +381,32 @@ class TournamentCreateSerializer(serializers.ModelSerializer):
 class TournamentRegistrationSerializer(serializers.ModelSerializer):
     tournament_title = serializers.CharField(source='tournament.title', read_only=True)
     user_email = serializers.EmailField(source='user.email', read_only=True)
+    tournament_detail = serializers.SerializerMethodField()
 
     class Meta:
         model = TournamentRegistration
-        fields = ['id', 'tournament', 'tournament_title', 'user', 'user_email', 'team_name', 'contact_phone', 'status', 'registered_at', 'player_names']
+        fields = ['id', 'tournament', 'tournament_title', 'user', 'user_email', 'team_name', 'contact_phone', 'status', 'registered_at', 'player_names', 'tournament_detail']
         read_only_fields = ['user', 'status', 'registered_at']
+
+    def get_tournament_detail(self, obj):
+        image_url = None
+        if obj.tournament.image:
+            request = self.context.get('request')
+            if request:
+                image_url = request.build_absolute_uri(obj.tournament.image.url)
+            else:
+                image_url = obj.tournament.image.url
+
+        return {
+            "title": obj.tournament.title,
+            "entry_fee": obj.tournament.entry_fee,
+            "image": image_url,
+            "location": obj.tournament.location,
+            "date": obj.tournament.date,
+            "start_date": obj.tournament.start_date,
+            "end_date": obj.tournament.end_date,
+            "format": obj.tournament.format,
+        }
 
     def validate(self, data):
         user = self.context['request'].user
@@ -385,7 +416,11 @@ class TournamentRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'tournament': 'Registration deadline has passed.'})
         if tournament.registered_teams >= tournament.team_limit:
             raise serializers.ValidationError({'tournament': 'Tournament is full.'})
-        if TournamentRegistration.objects.filter(tournament=tournament, user=user).exists():
+        
+        # Only block if already confirmed/completed
+        from futsal.models import BookingStatusEnum
+        existing = TournamentRegistration.objects.filter(tournament=tournament, user=user).exclude(status=BookingStatusEnum.PENDING)
+        if existing.exists():
             raise serializers.ValidationError({'tournament': 'You have already registered.'})
         return data
 

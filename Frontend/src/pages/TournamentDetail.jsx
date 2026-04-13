@@ -211,10 +211,22 @@ export default function TournamentDetail() {
                 {regSuccess && <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm">{regSuccess}</div>}
 
                 {isOpen ? (
-                  <button onClick={() => setIsModalOpen(true)}
-                    className="w-full py-4 rounded-xl bg-green-600 text-white font-bold text-lg hover:bg-green-700 transition-all active:scale-95 shadow-lg shadow-green-200 flex items-center justify-center gap-2">
-                    Register Team Now
-                  </button>
+                  tournament.user_registration_status === "confirmed" || tournament.user_registration_status === "completed" ? (
+                    <button disabled
+                      className="w-full py-4 rounded-xl bg-gray-400 text-white font-bold text-lg cursor-not-allowed flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-5 h-5" /> Already Registered
+                    </button>
+                  ) : tournament.user_registration_status === "pending" ? (
+                    <button onClick={() => setIsModalOpen(true)}
+                      className="w-full py-4 rounded-xl bg-yellow-500 text-white font-bold text-lg hover:bg-yellow-600 transition-all active:scale-95 shadow-lg shadow-yellow-200 flex items-center justify-center gap-2">
+                      Resume Registration
+                    </button>
+                  ) : (
+                    <button onClick={() => setIsModalOpen(true)}
+                      className="w-full py-4 rounded-xl bg-green-600 text-white font-bold text-lg hover:bg-green-700 transition-all active:scale-95 shadow-lg shadow-green-200 flex items-center justify-center gap-2">
+                      Register Team Now
+                    </button>
+                  )
                 ) : isOngoing ? (
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-center">
                     <Clock className="w-8 h-8 text-blue-500 mx-auto mb-2" />

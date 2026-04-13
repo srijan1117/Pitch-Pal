@@ -46,6 +46,7 @@ class CourtListView(generics.ListAPIView):
     queryset = FutsalCourt.objects.filter(is_active=True).order_by('-created_at')
     serializer_class = FutsalCourtSerializer
     permission_classes = [AllowAny]
+    swagger_tags = ['Courts']
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -57,6 +58,7 @@ class CourtCreateView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated, IsOwner]
     parser_classes = [MultiPartParser, FormParser]
+    swagger_tags = ['Courts']
 
     @swagger_auto_schema(request_body=FutsalCourtCreateSerializer, tags=["Courts"])
     def post(self, request):
@@ -70,6 +72,7 @@ class OwnerCourtListView(generics.ListAPIView):
     """Owner: List their own courts."""
     serializer_class = FutsalCourtSerializer
     permission_classes = [IsAuthenticated, IsOwner]
+    swagger_tags = ['Courts']
 
     def get_queryset(self):
         return FutsalCourt.objects.filter(owner=self.request.user)
@@ -84,6 +87,7 @@ class CourtDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = FutsalCourt.objects.all()
     serializer_class = FutsalCourtSerializer
     permission_classes = [IsAuthenticated, IsOwnerOfCourt]
+    swagger_tags = ['Courts']
 
     def get(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -94,6 +98,7 @@ class CourtImageUploadView(APIView):
     """Upload gallery images for a court."""
     permission_classes = [IsAuthenticated, IsOwner]
     parser_classes = [MultiPartParser, FormParser]
+    swagger_tags = ['Courts']
 
     def post(self, request, court_id):
         try:
@@ -112,6 +117,7 @@ class CourtImageUploadView(APIView):
 class CourtTimeSlotsView(APIView):
     """Public: View all slots for a specific court, marked if booked for a specific date."""
     permission_classes = [AllowAny]
+    swagger_tags = ['Time Slots']
 
     def get(self, request, court_id):
         booking_date = request.query_params.get('date')
@@ -159,6 +165,7 @@ class CourtTimeSlotsView(APIView):
 class TimeSlotCreateView(APIView):
     """Owner: Create a time slot."""
     permission_classes = [IsAuthenticated, IsOwner]
+    swagger_tags = ['Time Slots']
 
     def post(self, request, court_id):
         try:
@@ -176,12 +183,14 @@ class TimeSlotDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TimeSlotSerializer
     permission_classes = [IsAuthenticated, IsOwner]
     lookup_url_kwarg = 'slot_id'
+    swagger_tags = ['Time Slots']
 
 # ── BOOKINGS ────────────────────────────────────────────────────────────────
 
 class BookingCreateView(APIView):
     """User: Create a new booking."""
     permission_classes = [IsAuthenticated]
+    swagger_tags = ['Bookings']
 
     def post(self, request):
         serializer = BookingSerializer(data=request.data, context={'request': request})
@@ -193,6 +202,7 @@ class BookingCreateView(APIView):
 class UserBookingListView(generics.ListAPIView):
     serializer_class = BookingSerializer
     permission_classes = [IsAuthenticated]
+    swagger_tags = ['Bookings']
 
     def get_queryset(self):
         return Booking.objects.filter(user=self.request.user).order_by('-booking_date')
@@ -204,6 +214,7 @@ class UserBookingListView(generics.ListAPIView):
 
 class BookingCancelView(APIView):
     permission_classes = [IsAuthenticated]
+    swagger_tags = ['Bookings']
 
     def post(self, request, booking_id):
         try:
@@ -212,15 +223,13 @@ class BookingCancelView(APIView):
                 return api_response(is_success=False, error_message="Cannot cancel this booking", status_code=status.HTTP_400_BAD_REQUEST)
             
             # ✅ Business Rule: Cannot cancel within 6 hours of the game
-            from datetime import datetime, combine
+            from datetime import datetime
             from django.utils import timezone
             
-            booking_datetime = combine(booking.booking_date, booking.time_slot.start_time)
+            booking_datetime = datetime.combine(booking.booking_date, booking.time_slot.start_time)
             # Make timezone aware if settings.USE_TZ is True
             if settings.USE_TZ:
-                from django.utils.timezone import get_current_timezone
-                tz = get_current_timezone()
-                booking_datetime = tz.localize(booking_datetime)
+                booking_datetime = timezone.make_aware(booking_datetime)
             
             now = timezone.now()
             diff = booking_datetime - now
@@ -240,6 +249,7 @@ class BookingCancelView(APIView):
 
 class OwnerBookingListView(APIView):
     permission_classes = [IsAuthenticated, IsOwner]
+    swagger_tags = ['Bookings']
 
     def get(self, request):
         courts = FutsalCourt.objects.filter(owner=request.user)
@@ -249,6 +259,7 @@ class OwnerBookingListView(APIView):
 
 class WalkinBookingView(APIView):
     permission_classes = [IsAuthenticated, IsOwner]
+    swagger_tags = ['Bookings']
 
     def post(self, request):
         serializer = WalkinBookingSerializer(data=request.data)
@@ -261,6 +272,7 @@ class WalkinBookingView(APIView):
 
 class WeeklyBookingCreateView(APIView):
     permission_classes = [IsAuthenticated]
+    swagger_tags = ['Weekly Bookings']
 
     def post(self, request):
         serializer = WeeklyBookingSerializer(data=request.data, context={'request': request})
@@ -272,6 +284,7 @@ class WeeklyBookingCreateView(APIView):
 class WeeklyBookingListView(generics.ListAPIView):
     serializer_class = WeeklyBookingSerializer
     permission_classes = [IsAuthenticated]
+    swagger_tags = ['Weekly Bookings']
 
     def get_queryset(self):
         if self.request.user.role == RoleEnum.OWNER:
@@ -285,6 +298,7 @@ class WeeklyBookingListView(generics.ListAPIView):
 
 class WeeklyBookingCancelView(APIView):
     permission_classes = [IsAuthenticated]
+    swagger_tags = ['Weekly Bookings']
 
     def post(self, request, booking_id):
         try:
@@ -302,6 +316,7 @@ class TournamentListView(generics.ListAPIView):
     queryset = Tournament.objects.all().order_by('-created_at')
     serializer_class = TournamentSerializer
     permission_classes = [AllowAny]
+    swagger_tags = ['Tournaments']
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -310,6 +325,7 @@ class TournamentListView(generics.ListAPIView):
 
 class TournamentCreateView(APIView):
     permission_classes = [IsAuthenticated, IsOwner]
+    swagger_tags = ['Tournaments']
 
     def post(self, request):
         serializer = TournamentCreateSerializer(data=request.data, context={'request': request})
@@ -323,22 +339,74 @@ class TournamentDetailView(generics.RetrieveAPIView):
     serializer_class = TournamentSerializer
     permission_classes = [AllowAny]
     lookup_url_kwarg = 'tournament_id'
+    swagger_tags = ['Tournaments']
+
+    def get(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, context={'request': request})
+        return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
 
 class TournamentUpdateView(generics.UpdateAPIView):
     queryset = Tournament.objects.all()
     serializer_class = TournamentCreateSerializer
     permission_classes = [IsAuthenticated, IsOwner]
     lookup_url_kwarg = 'tournament_id'
+    swagger_tags = ['Tournaments']
 
 class TournamentDeleteView(generics.DestroyAPIView):
     queryset = Tournament.objects.all()
     permission_classes = [IsAuthenticated, IsOwner]
     lookup_url_kwarg = 'tournament_id'
+    swagger_tags = ['Tournaments']
+
+class TournamentRegistrationCancelView(APIView):
+    permission_classes = [IsAuthenticated]
+    swagger_tags = ['Tournaments']
+
+    def post(self, request, registration_id):
+        try:
+            from futsal.models import TournamentRegistration, BookingStatusEnum
+            from django.utils import timezone
+            reg = TournamentRegistration.objects.get(id=registration_id, user=request.user)
+            
+            if reg.status in [BookingStatusEnum.CANCELLED, BookingStatusEnum.COMPLETED]:
+                return api_response(is_success=False, error_message="This registration cannot be cancelled.", status_code=status.HTTP_400_BAD_REQUEST)
+                
+            # Rule: Cannot cancel if registration deadline has passed
+            if reg.tournament.registration_deadline and timezone.now() > reg.tournament.registration_deadline:
+                return api_response(is_success=False, error_message="Cancellations are not permitted after the tournament registration deadline.", status_code=status.HTTP_400_BAD_REQUEST)
+                
+            reg.status = BookingStatusEnum.CANCELLED
+            reg.save()
+            
+            # Optionally update tournament team count? The @property 'registered_teams' actually counts active registrations so it auto-updates!
+            return api_response(is_success=True, result="Registration cancelled successfully.", status_code=status.HTTP_200_OK)
+        except TournamentRegistration.DoesNotExist:
+            return api_response(is_success=False, error_message="Registration not found.", status_code=status.HTTP_404_NOT_FOUND)
 
 class TournamentRegisterView(APIView):
     permission_classes = [IsAuthenticated]
+    swagger_tags = ['Tournaments']
 
     def post(self, request):
+        tournament_id = request.data.get('tournament')
+        try:
+            from futsal.models import TournamentRegistration, BookingStatusEnum
+            existing = TournamentRegistration.objects.filter(
+                tournament_id=tournament_id, 
+                user=request.user,
+                status=BookingStatusEnum.PENDING
+            ).first()
+            if existing:
+                # Optionally update details
+                existing.team_name = request.data.get('team_name', existing.team_name)
+                existing.contact_phone = request.data.get('contact_phone', existing.contact_phone)
+                existing.player_names = request.data.get('player_names', existing.player_names)
+                existing.save()
+                return api_response(is_success=True, result=TournamentRegistrationSerializer(existing).data, status_code=status.HTTP_200_OK)
+        except Exception:
+            pass
+
         serializer = TournamentRegistrationSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             reg = serializer.save()
@@ -348,13 +416,20 @@ class TournamentRegisterView(APIView):
 class UserTournamentRegistrationsView(generics.ListAPIView):
     serializer_class = TournamentRegistrationSerializer
     permission_classes = [IsAuthenticated]
+    swagger_tags = ['Tournaments']
 
     def get_queryset(self):
         return TournamentRegistration.objects.filter(user=self.request.user)
 
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
+
 class TournamentRegistrationsAdminView(generics.ListAPIView):
     serializer_class = TournamentRegistrationSerializer
     permission_classes = [IsAuthenticated, IsOwner]
+    swagger_tags = ['Tournaments']
 
     def get_queryset(self):
         tournament_id = self.kwargs.get('tournament_id')
@@ -363,6 +438,7 @@ class TournamentRegistrationsAdminView(generics.ListAPIView):
 class OwnerTournamentListView(generics.ListAPIView):
     serializer_class = TournamentSerializer
     permission_classes = [IsAuthenticated, IsOwner]
+    swagger_tags = ['Tournaments']
 
     def get_queryset(self):
         return Tournament.objects.filter(owner=self.request.user)
@@ -376,6 +452,7 @@ class OwnerTournamentListView(generics.ListAPIView):
 
 class ReviewCreateView(APIView):
     permission_classes = [IsAuthenticated]
+    swagger_tags = ['Reviews']
 
     def post(self, request):
         serializer = ReviewSerializer(data=request.data, context={'request': request})
@@ -389,10 +466,12 @@ class ReviewUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated]
     lookup_url_kwarg = 'review_id'
+    swagger_tags = ['Reviews']
 
 class CourtReviewListView(generics.ListAPIView):
     serializer_class = ReviewSerializer
     permission_classes = [AllowAny]
+    swagger_tags = ['Reviews']
 
     def get_queryset(self):
         return Review.objects.filter(court_id=self.kwargs.get('court_id'))
@@ -402,6 +481,7 @@ class CourtReviewListView(generics.ListAPIView):
 class KhaltiInitiateView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
+    swagger_tags = ['Payment']
 
     @swagger_auto_schema(request_body=KhaltiInitSerializer, tags=["Payment"])
     def post(self, request):
@@ -500,6 +580,7 @@ class KhaltiInitiateView(APIView):
 class KhaltiVerifyView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
+    swagger_tags = ['Payment']
 
     @swagger_auto_schema(request_body=KhaltiVerifySerializer, tags=["Payment"])
     def post(self, request):

@@ -119,7 +119,10 @@ function BookingList({ bookings, type, onCancel }) {
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-50">
                     <div className="text-sm text-gray-500">
-                      Booking ID: <span className="font-mono font-medium text-gray-900">#BK-{booking.id}</span>
+                      {booking.isTournament ? "Registration ID: " : "Booking ID: "}
+                      <span className="font-mono font-medium text-gray-900">
+                        {booking.isTournament ? `#REG-${booking.original_id}` : `#BK-${booking.id}`}
+                      </span>
                     </div>
                     <div className="text-lg font-bold text-green-700">
                       Rs {booking.total_amount}
@@ -129,7 +132,7 @@ function BookingList({ bookings, type, onCancel }) {
 
                 {/* Actions Panel */}
                 <div className="w-full md:w-52 flex flex-col justify-center gap-3 border-t md:border-t-0 md:border-l border-gray-100 pt-6 md:pt-0 md:pl-6">
-                  {type === "history" && booking.status === "completed" && (
+                  {type === "history" && booking.status === "completed" && !booking.isTournament && (
                     <Link
                       to={`/browse/${booking.court}`}
                       className="h-[52px] flex items-center justify-center px-6 rounded-xl bg-green-50 text-green-700 text-sm font-bold hover:bg-green-100 transition-all border border-green-100 active:scale-95"
@@ -149,7 +152,7 @@ function BookingList({ bookings, type, onCancel }) {
 
                   {booking.status === "pending" && (
                     <Link
-                      to={`/browse/${booking.court}`}
+                      to={booking.isTournament ? `/tournaments/${booking.tournament_id}` : `/browse/${booking.court}`}
                       className="h-[52px] flex items-center justify-center px-6 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-black transition-all active:scale-95 shadow-md"
                     >
                       Pay Now
@@ -173,31 +176,60 @@ export default function Bookings() {
   const [cancellingId, setCancellingId] = useState(null);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState(null);
+  const [cancelErrorMsg, setCancelErrorMsg] = useState("");
   const navigate = useNavigate();
 
   const fetchBookings = useCallback(async () => {
     setLoading(true);
     try {
-      const [bookingsRes, courtsRes] = await Promise.all([
+      const [bookingsRes, courtsRes, tourneysRes] = await Promise.all([
         api.get("/futsal/bookings/"),
-        api.get("/futsal/courts/")
+        api.get("/futsal/courts/"),
+        api.get("/futsal/tournaments/my-registrations/")
       ]);
 
       const bookingsData = bookingsRes.data?.Result || [];
       const courtsData = courtsRes.data?.Result || [];
+      const tourneysData = tourneysRes.data?.Result || [];
 
       // Enrich bookings with court image and address
-      const enriched = bookingsData.map(booking => {
+      const enrichedBookings = bookingsData.map(booking => {
         const court = courtsData.find(c => c.id === booking.court);
         return {
           ...booking,
           court_name: booking.court_name,
           court_image: court?.image || null,
           court_address: court?.address || "",
+          isTournament: false
         };
       });
 
-      setBookings(enriched);
+      const normalizedTourneys = tourneysData.map(reg => {
+        const d = reg.tournament_detail;
+        return {
+          id: `T-${reg.id}`,
+          original_id: reg.id,
+          isTournament: true,
+          tournament_id: reg.tournament,
+          court_name: d.title,
+          court_image: d.image,
+          court_address: d.location,
+          booking_date: d.date || d.start_date,
+          total_amount: d.entry_fee,
+          status: reg.status,
+          time_slot_detail: {
+            start_time: (d.format || "Knockout").slice(0, 5),
+            end_time: "Match"
+          }
+        };
+      });
+
+      // Sort by date descending
+      const allEvents = [...enrichedBookings, ...normalizedTourneys].sort((a, b) => {
+        return new Date(b.booking_date) - new Date(a.booking_date);
+      });
+
+      setBookings(allEvents);
       setCourts(courtsData);
     } catch (err) {
       if (err?.response?.status === 401) navigate("/login");
@@ -212,21 +244,33 @@ export default function Bookings() {
 
   const handleCancelClick = (bookingId) => {
     setSelectedBookingId(bookingId);
+    setCancelErrorMsg("");
     setIsCancelModalOpen(true);
   };
 
   const confirmCancel = async () => {
     if (!selectedBookingId) return;
     setCancellingId(selectedBookingId);
+    setCancelErrorMsg("");
     try {
-      await api.post(`/futsal/bookings/${selectedBookingId}/cancel/`);
+      if (typeof selectedBookingId === 'string' && selectedBookingId.startsWith('T-')) {
+        const regId = selectedBookingId.replace('T-', '');
+        await api.post(`/futsal/tournaments/registrations/${regId}/cancel/`);
+      } else {
+        await api.post(`/futsal/bookings/${selectedBookingId}/cancel/`);
+      }
       setIsCancelModalOpen(false);
+      setSelectedBookingId(null);
       fetchBookings();
     } catch (err) {
-      alert("Failed to cancel booking. Please try again.");
+      const msg = err.response?.data?.ErrorMessage;
+      if (msg) {
+        setCancelErrorMsg(msg);
+      } else {
+        setCancelErrorMsg("Failed to cancel booking. Please try again.");
+      }
     } finally {
       setCancellingId(null);
-      setSelectedBookingId(null);
     }
   };
 
@@ -309,9 +353,12 @@ export default function Bookings() {
             onClose={() => {
               setIsCancelModalOpen(false);
               setSelectedBookingId(null);
+              setCancelErrorMsg("");
             }}
             onConfirm={confirmCancel}
             bookingId={selectedBookingId}
+            errorMsg={cancelErrorMsg}
+            isCancelling={cancellingId !== null}
           />
 
           {/* Recommended Courts */}

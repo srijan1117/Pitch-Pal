@@ -13,7 +13,7 @@ from futsal.views import (
     TournamentListView, TournamentDetailView, TournamentCreateView,
     TournamentUpdateView, TournamentDeleteView, TournamentRegisterView,
     UserTournamentRegistrationsView, TournamentRegistrationsAdminView, 
-    OwnerTournamentListView
+    OwnerTournamentListView, TournamentRegistrationCancelView
 )
 
 urlpatterns = [
@@ -40,15 +40,16 @@ urlpatterns = [
     path('bookings/weekly/<int:booking_id>/cancel/', WeeklyBookingCancelView.as_view(), name='weekly-booking-cancel'),
 
     # ── Tournaments ───────────────────────────────
-path('tournaments/', TournamentListView.as_view(), name='tournament-list'),
-path('tournaments/create/', TournamentCreateView.as_view(), name='tournament-create'),
-path('tournaments/my-registrations/', UserTournamentRegistrationsView.as_view(), name='my-tournament-registrations'),
-path('tournaments/register/', TournamentRegisterView.as_view(), name='tournament-register'),
-path('tournaments/mine/', OwnerTournamentListView.as_view(), name='owner-tournaments'),
-path('tournaments/<int:tournament_id>/', TournamentDetailView.as_view(), name='tournament-detail'),
-path('tournaments/<int:tournament_id>/update/', TournamentUpdateView.as_view(), name='tournament-update'),
-path('tournaments/<int:tournament_id>/delete/', TournamentDeleteView.as_view(), name='tournament-delete'),
-path('tournaments/<int:tournament_id>/registrations/', TournamentRegistrationsAdminView.as_view(), name='tournament-registrations'),    
+    path('tournaments/', TournamentListView.as_view(), name='tournament-list'),
+    path('tournaments/create/', TournamentCreateView.as_view(), name='tournament-create'),
+    path('tournaments/my-registrations/', UserTournamentRegistrationsView.as_view(), name='my-tournament-registrations'),
+    path('tournaments/registrations/<int:registration_id>/cancel/', TournamentRegistrationCancelView.as_view(), name='tournament-registration-cancel'),
+    path('tournaments/register/', TournamentRegisterView.as_view(), name='tournament-register'),
+    path('tournaments/mine/', OwnerTournamentListView.as_view(), name='owner-tournaments'),
+    path('tournaments/<int:tournament_id>/', TournamentDetailView.as_view(), name='tournament-detail'),
+    path('tournaments/<int:tournament_id>/update/', TournamentUpdateView.as_view(), name='tournament-update'),
+    path('tournaments/<int:tournament_id>/delete/', TournamentDeleteView.as_view(), name='tournament-delete'),
+    path('tournaments/<int:tournament_id>/registrations/', TournamentRegistrationsAdminView.as_view(), name='tournament-registrations'),    
 
     # ── Review ─────────────────────────────────
     path('reviews/create/', ReviewCreateView.as_view(), name='review-create'),
