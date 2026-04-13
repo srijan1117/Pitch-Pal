@@ -3,6 +3,7 @@ import { Home, Calendar, Clock, DollarSign, Plus } from "lucide-react";
 import StatCard from "../../components/owner/StatCard";
 import StatusBadge from "../../components/owner/StatusBadge";
 import WalkInModal from "../../components/owner/WalkInModal";
+import DashboardCharts from "../../components/owner/DashboardCharts";
 
 export default function OwnerOverview({ courts, bookings, onTabChange, onRefresh }) {
   const [showWalkIn, setShowWalkIn] = useState(false);
@@ -35,6 +36,9 @@ export default function OwnerOverview({ courts, bookings, onTabChange, onRefresh
         <StatCard title="Pending Requests" value={pendingBookings} icon={<Clock className="w-5 h-5" />} color="yellow" />
         <StatCard title="Total Revenue" value={`Rs ${totalRevenue.toLocaleString()}`} icon={<DollarSign className="w-5 h-5" />} color="purple" />
       </div>
+
+      {/* Analytics Charts */}
+      <DashboardCharts bookings={bookings} />
 
       {/* Recent Bookings */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
