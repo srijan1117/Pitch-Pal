@@ -1,16 +1,18 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Footer } from "../components/Footer";
 import { ImageWithFallback } from "../components/ui/ImageWithFallback";
 import { FeaturedFutsals } from "../components/FeaturedFutsals";
 import { Star, MapPin, Clock, Calendar } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import api from "../api/axios";
 import { isLoggedIn } from "../api/auth";
 import KhaltiPaymentModal from "../components/KhaltiPaymentModal";
 
 export default function FutsalDetail() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
+  const reviewRef = useRef(null);
 
   const [court, setCourt] = useState(null);
   const [slots, setSlots] = useState([]);
@@ -35,6 +37,15 @@ export default function FutsalDetail() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState("");
   const [reviewError, setReviewError] = useState("");
+
+  // ── Auto-scroll to review if hash present ───────────────────────────────
+  useEffect(() => {
+    if (location.hash === "#review" && reviewRef.current && !loading) {
+      setTimeout(() => {
+        reviewRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 500);
+    }
+  }, [location.hash, loading]);
 
   const days = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date();
@@ -90,26 +101,38 @@ export default function FutsalDetail() {
   // ── Check if user has completed booking for this court ────────────────
   useEffect(() => {
     if (!isLoggedIn() || !id) return;
-    api.get("/futsal/bookings/")
-      .then(res => {
-        const bookings = res.data?.Result || [];
+    
+    const checkStatus = async () => {
+      try {
+        const [bookingsRes, reviewsRes] = await Promise.all([
+          api.get("/futsal/bookings/"),
+          api.get(`/futsal/courts/${id}/reviews/`)
+        ]);
+
+        const bookings = bookingsRes.data?.Result || [];
+        const courtReviews = reviewsRes.data?.Result?.reviews || [];
+        const myEmail = localStorage.getItem("email");
+
+        // Check if I have already reviewed this court
+        const myReview = courtReviews.find(rv => rv.user_email === myEmail);
+        if (myReview) {
+          setAlreadyReviewed(true);
+          return;
+        }
+
+        // Find a completed booking for this court
         const completed = bookings.find(
           b => b.court === parseInt(id) && b.status === "completed"
         );
         if (completed) {
           setCompletedBooking(completed);
-          // Check if already reviewed
-          api.get(`/futsal/courts/${id}/reviews/`)
-            .then(r => {
-              const myEmail = localStorage.getItem("email");
-              const myReview = (r.data?.Result?.reviews || []).find(
-                rv => rv.user_email === myEmail
-              );
-              if (myReview) setAlreadyReviewed(true);
-            });
         }
-      })
-      .catch(() => { });
+      } catch (err) {
+        console.error("Error checking review status:", err);
+      }
+    };
+
+    checkStatus();
   }, [id]);
 
   // ── Handle booking ────────────────────────────────────────────────────
@@ -412,7 +435,7 @@ export default function FutsalDetail() {
 
             {/* REVIEWS SECTION */}
             <div className="mb-10">
-              <h2 className="text-xl font-semibold mb-4">
+              <h2 ref={reviewRef} className="text-xl font-semibold mb-4">
                 Reviews {reviews.length > 0 && `(${reviews.length})`}
               </h2>
 

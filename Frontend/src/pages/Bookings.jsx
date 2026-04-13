@@ -134,7 +134,7 @@ function BookingList({ bookings, type, onCancel }) {
                 <div className="w-full md:w-52 flex flex-col justify-center gap-3 border-t md:border-t-0 md:border-l border-gray-100 pt-6 md:pt-0 md:pl-6">
                   {type === "history" && booking.status === "completed" && !booking.isTournament && (
                     <Link
-                      to={`/browse/${booking.court}`}
+                      to={`/browse/${booking.court}#review`}
                       className="h-[52px] flex items-center justify-center px-6 rounded-xl bg-green-50 text-green-700 text-sm font-bold hover:bg-green-100 transition-all border border-green-100 active:scale-95"
                     >
                       Leave Review

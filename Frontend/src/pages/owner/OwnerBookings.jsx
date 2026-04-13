@@ -74,7 +74,9 @@ export default function OwnerBookings({ bookings, courts, onRefresh }) {
                 <tr key={bk.id} className="hover:bg-gray-50 transition">
                   <td className="px-5 py-3 text-gray-400 font-mono text-xs">#{bk.id}</td>
                   <td className="px-5 py-3 font-medium text-gray-800">{bk.court_name}</td>
-                  <td className="px-5 py-3 text-gray-500">{bk.user_email}</td>
+                  <td className="px-5 py-3 text-gray-500">
+                    {bk.user_email || `Walk-in: ${bk.customer_name || 'Anonymous'}`}
+                  </td>
                   <td className="px-5 py-3 text-gray-500">{bk.booking_date}</td>
                   <td className="px-5 py-3 text-gray-500">
                     {bk.time_slot_detail?.start_time?.slice(0, 5)} – {bk.time_slot_detail?.end_time?.slice(0, 5)}

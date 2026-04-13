@@ -81,7 +81,7 @@ class FutsalCourtCreateSerializer(serializers.ModelSerializer):
 class BookingSerializer(serializers.ModelSerializer):
     court_name = serializers.CharField(source='court.name', read_only=True)
     time_slot_detail = TimeSlotSerializer(source='time_slot', read_only=True)
-    user_email = serializers.EmailField(source='user.email', read_only=True, allow_null=True)
+    user_email = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -91,6 +91,9 @@ class BookingSerializer(serializers.ModelSerializer):
             'status', 'total_amount', 'customer_name', 'customer_phone', 'created_at'
         ]
         read_only_fields = ['status', 'total_amount', 'created_at', 'user_email']
+
+    def get_user_email(self, obj):
+        return obj.user.email if obj.user else None
 
     def validate(self, data):
         court = data.get('court')
@@ -196,32 +199,55 @@ class WalkinBookingSerializer(serializers.ModelSerializer):
         if not time_slot or not court or time_slot.court != court:
             raise serializers.ValidationError({'time_slot': 'Invalid slot for selected court.'})
 
-        # Check if already booked
-        existing = Booking.objects.filter(
+        # Check if already booked (Confirmed/Completed)
+        existing_confirmed = Booking.objects.filter(
             court=court,
             time_slot=time_slot,
-            booking_date=booking_date
-        ).exclude(status__in=[BookingStatusEnum.CANCELLED, BookingStatusEnum.PENDING])
+            booking_date=booking_date,
+            status__in=[BookingStatusEnum.CONFIRMED, BookingStatusEnum.COMPLETED]
+        )
         
-        if existing.exists():
+        if existing_confirmed.exists():
             raise serializers.ValidationError('This slot is already booked.')
+
+        # Check for active Pending bookings (15 min lock)
+        from django.utils import timezone
+        from datetime import timedelta
+        lock_time = timezone.now() - timedelta(minutes=15)
+        existing_pending = Booking.objects.filter(
+            court=court,
+            time_slot=time_slot,
+            booking_date=booking_date,
+            status=BookingStatusEnum.PENDING,
+            created_at__gte=lock_time
+        )
+
+        if existing_pending.exists():
+            # For walk-ins, we might want to allow the owner to override, 
+            # but standardizing on blocking is safer for now.
+            raise serializers.ValidationError('This slot is currently being booked by another user online. Please try again in 15 minutes.')
 
         return data
 
     def create(self, validated_data):
-        from datetime import datetime, date as date_type
+        from datetime import datetime, date as date_type, timedelta
         from decimal import Decimal
 
         court = validated_data['court']
         time_slot = validated_data['time_slot']
 
-        # Calculate amount
-        start = datetime.combine(date_type.today(), time_slot.start_time)
-        end = datetime.combine(date_type.today(), time_slot.end_time)
-        hours = (end - start).seconds / 3600
-        total_amount = round(Decimal(str(hours)) * court.price_per_hour, 2)
+        # Calculate duration robustly (handling midnight crossing)
+        start_dt = datetime.combine(date_type.today(), time_slot.start_time)
+        end_dt = datetime.combine(date_type.today(), time_slot.end_time)
+        
+        duration = end_dt - start_dt
+        if duration.total_seconds() < 0:
+            duration += timedelta(days=1)
+            
+        hours = Decimal(str(duration.total_seconds() / 3600))
+        total_amount = round(hours * court.price_per_hour, 2)
 
-        # Walk-ins are auto-confirmed
+        # Walk-ins are auto-confirmed and have no 'user' (it's null)
         booking = Booking.objects.create(
             status=BookingStatusEnum.CONFIRMED,
             total_amount=total_amount,

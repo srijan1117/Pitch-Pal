@@ -476,6 +476,11 @@ class CourtReviewListView(generics.ListAPIView):
     def get_queryset(self):
         return Review.objects.filter(court_id=self.kwargs.get('court_id'))
 
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return api_response(is_success=True, result={"reviews": serializer.data}, status_code=status.HTTP_200_OK)
+
 # ── KHALTI PAYMENT ──────────────────────────────────────────────────────────
 
 class KhaltiInitiateView(APIView):
