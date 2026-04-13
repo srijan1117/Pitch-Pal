@@ -4,6 +4,7 @@ import { LogOut, Home, Calendar, LayoutDashboard, Menu, X, Loader2, Trophy } fro
 import { clearSession } from "../../api/auth";
 import api from "../../api/axios";
 import LogoutConfirmationModal from "../../components/LogoutConfirmationModal";
+import logo from "../../assets/logo.png";
 import OwnerOverview from "./OwnerOverview";
 import OwnerCourts from "./OwnerCourts";
 import OwnerBookings from "./OwnerBookings";
@@ -91,8 +92,10 @@ export default function OwnerDashboard() {
       <aside className="hidden md:flex w-64 bg-gray-900 text-white flex-col shrink-0">
         {/* Logo */}
         <div className="p-6 border-b border-gray-800 flex items-center gap-3">
-          <div className="w-9 h-9 bg-green-600 rounded-xl flex items-center justify-center font-bold text-sm">PP</div>
-          <span className="text-lg font-bold">Owner Portal</span>
+          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-sm">
+            <img src={logo} alt="PitchPal Logo" className="w-full h-full object-contain" />
+          </div>
+          <span className="text-xl font-black text-white tracking-tight">PitchPal</span>
         </div>
 
         {/* Nav */}
@@ -169,8 +172,10 @@ export default function OwnerDashboard() {
           <aside className="relative w-72 max-w-[85vw] bg-gray-900 text-white flex flex-col h-full shadow-2xl">
             <div className="p-5 border-b border-gray-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center font-bold text-sm">PP</div>
-                <span className="font-bold">Owner Portal</span>
+                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-sm">
+                  <img src={logo} alt="PitchPal Logo" className="w-full h-full object-contain" />
+                </div>
+                <span className="text-lg font-black text-white tracking-tight">PitchPal</span>
               </div>
               <button onClick={() => setIsMobileMenuOpen(false)}
                 className="p-1 hover:bg-gray-800 rounded-lg transition">

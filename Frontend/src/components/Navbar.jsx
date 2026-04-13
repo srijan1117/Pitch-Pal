@@ -5,6 +5,7 @@ import { ProfileModal } from "./ProfileModal";
 import LogoutConfirmationModal from "./LogoutConfirmationModal";
 import { clearSession, isLoggedIn } from "../api/auth";
 import api from "../api/axios";
+import logo from "../assets/logo.png";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -52,10 +53,13 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16 md:h-20">
 
           {/* Logo */}
-          <Link to="/home" className="flex-shrink-0">
-            <div className="w-16 h-10 bg-gradient-to-r from-green-600 to-green-700 rounded-md flex items-center justify-center">
-              <span className="text-white font-bold text-lg">PP</span>
+          <Link to="/home" className="flex-shrink-0 flex items-center gap-2 group">
+            <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors shadow-sm">
+              <img src={logo} alt="PitchPal Logo" className="w-10 h-10 object-contain" />
             </div>
+            <span className="text-2xl font-black bg-gradient-to-r from-green-600 to-green-800 bg-clip-text text-transparent tracking-tight">
+              PitchPal
+            </span>
           </Link>
 
           {/* Desktop Nav */}

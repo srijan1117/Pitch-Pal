@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { loginUser, clearSession, isSessionExpired } from "../api/auth";
+import logo from "../assets/logo.png";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -13,7 +14,6 @@ export default function Login() {
     if (!isSessionExpired() && localStorage.getItem("access_token")) {
       const role = localStorage.getItem("role");
       if (role === "owner") navigate("/owner/dashboard");
-      else if (role === "admin" || role === "superuser") navigate("/admin/dashboard");
       else navigate("/home");
     } else {
       clearSession();
@@ -33,8 +33,6 @@ export default function Login() {
       const data = await loginUser(form);
       if (data?.role === "owner") {
         navigate("/owner/dashboard");
-      } else if (data?.role === "admin" || data?.role === "superuser") {
-        navigate("/admin/dashboard");
       } else {
         navigate("/home");
       }
@@ -57,9 +55,9 @@ export default function Login() {
           style={{ backgroundImage: "url('https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000')" }}
         ></div>
         <div className="relative z-10 max-w-md text-white">
-          <h2 className="text-5xl font-bold leading-tight">Welcome to our community</h2>
-          <p className="mt-6 text-lg opacity-90 leading-relaxed">
-            Clarity gives you the blocks & components you need to create a truly professional website.
+          <h2 className="text-5xl font-bold leading-tight uppercase tracking-tighter">Own the Pitch, <br /> Book Your Game.</h2>
+          <p className="mt-6 text-xl opacity-90 leading-relaxed font-medium">
+            The ultimate platform for futsal enthusiasts in Nepal. Quick bookings, verified courts, and a community of players waiting for you.
           </p>
         </div>
       </div>
@@ -67,8 +65,13 @@ export default function Login() {
       {/* RIGHT SIDE: Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 md:p-16">
         <div className="w-full max-w-md">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2 text-left">Welcome !</h1>
-          <p className="text-gray-500 mb-8 font-medium">Please enter your details to sign in.</p>
+          <div className="flex flex-col items-start mb-8">
+            <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center p-2 mb-4 shadow-sm">
+              <img src={logo} alt="PitchPal Logo" className="w-full h-full object-contain" />
+            </div>
+            <h1 className="text-4xl font-black text-gray-900 mb-2">Welcome Back!</h1>
+            <p className="text-gray-500 font-medium">Please enter your details to sign in to PitchPal.</p>
+          </div>
 
           {error && (
             <div className="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-100">

@@ -10,7 +10,6 @@ import MainLayout from "./components/MainLayout.jsx";
 import Tournaments from "./pages/Tournaments";
 import TournamentDetail from "./pages/TournamentDetail";
 import OwnerDashboard from "./pages/owner/OwnerDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
 import AutoLogout from "./components/AutoLogout";
 import KhaltiCallback from "./pages/KhaltiCallback";
 
@@ -25,7 +24,6 @@ export default function App() {
         <Route path="/khalti-callback" element={<KhaltiCallback />} />
         {/* Legacy redirects */}
         <Route path="/" element={<Navigate to="/home" replace />} />
-        <Route path="/admin-dashboard" element={<Navigate to="/admin/dashboard" replace />} />
 
         {/* Public + User routes — WITH navbar */}
         <Route element={<MainLayout />}>
@@ -57,15 +55,6 @@ export default function App() {
           }
         />
 
-        {/* Admin Dashboard — NO global navbar, own layout */}
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["admin", "superuser"]}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
       </Routes>
     </Router>
   );

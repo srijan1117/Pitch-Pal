@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { MapPin, Phone, Mail, Facebook, Instagram, Twitter } from 'lucide-react';
+import logo from "../assets/logo.png";
 
 export function Footer() {
   return (
@@ -9,8 +10,13 @@ export function Footer() {
 
           {/* Brand */}
           <div className="space-y-4">
-            <div className="w-16 h-10 bg-gradient-to-r from-green-600 to-green-700 rounded-md flex items-center justify-center">
-              <span className="text-white font-bold text-lg">PP</span>
+            <div className="flex items-center gap-2">
+              <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center p-2 shadow-sm">
+                <img src={logo} alt="PitchPal Logo" className="w-full h-full object-contain" />
+              </div>
+              <span className="text-2xl font-black text-white tracking-tight">
+                PitchPal
+              </span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
               Your trusted platform for seamless futsal court bookings across Nepal.

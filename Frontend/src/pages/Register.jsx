@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import logo from "../assets/logo.png";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -71,10 +72,10 @@ export default function Register() {
           className="absolute inset-0 z-0 opacity-50 bg-cover bg-center" 
           style={{ backgroundImage: "url('https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1000')" }}
         ></div>
-        <div className="relative z-10 max-w-md text-white text-center">
-          <h2 className="text-5xl font-bold leading-tight">Join our community</h2>
-          <p className="mt-6 text-lg opacity-90 leading-relaxed">
-            Create an account to start booking your favorite pitches and connect with players.
+        <div className="relative z-10 max-w-md text-white">
+          <h2 className="text-5xl font-bold leading-tight uppercase tracking-tighter">Step into <br /> the Arena.</h2>
+          <p className="mt-6 text-xl opacity-90 leading-relaxed font-medium">
+            Join the PitchPal community to find the best courts, compete in elite tournaments, and manage your team with ease.
           </p>
         </div>
       </div>
@@ -82,8 +83,13 @@ export default function Register() {
       {/* RIGHT SIDE: Register Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 md:p-12 overflow-y-auto">
         <div className="w-full max-w-lg">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Create account</h1>
-          <p className="text-gray-500 mb-6 font-medium">Join us today! It only takes a minute.</p>
+          <div className="flex flex-col items-start mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center p-2 mb-4 shadow-sm">
+              <img src={logo} alt="PitchPal Logo" className="w-full h-full object-contain" />
+            </div>
+            <h1 className="text-4xl font-black text-gray-900 mb-2">Create account</h1>
+            <p className="text-gray-500 font-medium">Join us today! It only takes a minute.</p>
+          </div>
 
           {error && (
             <div className="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-100">
