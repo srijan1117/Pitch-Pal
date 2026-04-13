@@ -1,10 +1,13 @@
 from rest_framework import serializers
-from futsal.models import Tournament, TournamentRegistration
 from futsal.models import (
     FutsalCourt, TimeSlot, Booking, Payment,
-    BookingStatusEnum, CourtImage, WeeklyBooking, Review, PaymentStatusEnum
+    BookingStatusEnum, CourtImage, WeeklyBooking, Review, PaymentStatusEnum,
+    Tournament, TournamentRegistration
 )
 from accounts.models import RoleEnum
+from django.utils import timezone
+from datetime import datetime, date as date_type, timedelta
+from decimal import Decimal
 
 
 class TimeSlotSerializer(serializers.ModelSerializer):
@@ -120,7 +123,6 @@ class BookingSerializer(serializers.ModelSerializer):
         )
 
         # Check for very recent pending bookings (15-minute lock)
-        from datetime import timedelta
         lock_time = timezone.now() - timedelta(minutes=15)
         existing_pending = Booking.objects.filter(
             court=court,
@@ -143,14 +145,9 @@ class BookingSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        from datetime import datetime, date as date_type, timedelta
-        from decimal import Decimal
-
         user = self.context['request'].user
         time_slot = validated_data['time_slot']
         court = validated_data['court']
-
-        # Calculate duration in hours
         # Note: we use a single day baseline. If end < start, it means it crosses midnight.
         start_dt = datetime.combine(date_type.today(), time_slot.start_time)
         end_dt = datetime.combine(date_type.today(), time_slot.end_time)
@@ -189,7 +186,7 @@ class WalkinBookingSerializer(serializers.ModelSerializer):
     time_slot_detail = TimeSlotSerializer(source='time_slot', read_only=True)
     class Meta:
         model = Booking
-        fields = ['court', 'time_slot', 'booking_date', 'customer_name', 'customer_phone']
+        fields = ['court', 'time_slot', 'booking_date', 'customer_name', 'customer_phone', 'court_name', 'time_slot_detail']
 
     def validate(self, data):
         court = data.get('court')
@@ -211,8 +208,6 @@ class WalkinBookingSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('This slot is already booked.')
 
         # Check for active Pending bookings (15 min lock)
-        from django.utils import timezone
-        from datetime import timedelta
         lock_time = timezone.now() - timedelta(minutes=15)
         existing_pending = Booking.objects.filter(
             court=court,
@@ -223,16 +218,11 @@ class WalkinBookingSerializer(serializers.ModelSerializer):
         )
 
         if existing_pending.exists():
-            # For walk-ins, we might want to allow the owner to override, 
-            # but standardizing on blocking is safer for now.
             raise serializers.ValidationError('This slot is currently being booked by another user online. Please try again in 15 minutes.')
 
         return data
 
     def create(self, validated_data):
-        from datetime import datetime, date as date_type, timedelta
-        from decimal import Decimal
-
         court = validated_data['court']
         time_slot = validated_data['time_slot']
 

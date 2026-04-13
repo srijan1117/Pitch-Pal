@@ -265,7 +265,11 @@ class WalkinBookingView(APIView):
         serializer = WalkinBookingSerializer(data=request.data)
         if serializer.is_valid():
             booking = serializer.save()
-            return api_response(is_success=True, result=BookingSerializer(booking).data, status_code=status.HTTP_201_CREATED)
+            return api_response(
+                is_success=True, 
+                result=BookingSerializer(booking, context={'request': request}).data, 
+                status_code=status.HTTP_201_CREATED
+            )
         return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
 # ── WEEKLY BOOKINGS ─────────────────────────────────────────────────────────
