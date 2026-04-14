@@ -110,9 +110,25 @@ export default function Tournaments() {
     t.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const upcoming = filtered.filter(t => t.state === "upcoming");
-  const ongoing = filtered.filter(t => t.state === "ongoing");
-  const history = filtered.filter(t => t.state === "history");
+  const getEffectiveState = (t) => {
+    if (!t.start_date || !t.end_date) return t.state;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const [sY, sM, sD] = t.start_date.split("-").map(Number);
+    const [eY, eM, eD] = t.end_date.split("-").map(Number);
+    
+    const startDate = new Date(sY, sM - 1, sD);
+    const endDate = new Date(eY, eM - 1, eD);
+
+    if (today < startDate) return "upcoming";
+    if (today > endDate) return "history";
+    return "ongoing";
+  };
+
+  const upcoming = filtered.filter(t => getEffectiveState(t) === "upcoming");
+  const ongoing = filtered.filter(t => getEffectiveState(t) === "ongoing");
+  const history = filtered.filter(t => getEffectiveState(t) === "history");
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);

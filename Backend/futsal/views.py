@@ -15,7 +15,8 @@ from drf_yasg import openapi
 from futsal.models import (
     FutsalCourt, TimeSlot, Booking, Payment, 
     BookingStatusEnum, PaymentStatusEnum, CourtImage, 
-    Review, WeeklyBooking, Tournament, TournamentRegistration
+    Review, WeeklyBooking, Tournament, TournamentRegistration,
+    TournamentStatusEnum, TournamentStateEnum
 )
 from futsal.serializers import (
     FutsalCourtSerializer, FutsalCourtCreateSerializer,
@@ -103,14 +104,33 @@ class CourtImageUploadView(APIView):
     def post(self, request, court_id):
         try:
             court = FutsalCourt.objects.get(id=court_id, owner=request.user)
-            image = request.FILES.get('image')
-            if not image:
-                return api_response(is_success=False, error_message="No image provided", status_code=status.HTTP_400_BAD_REQUEST)
+            images = request.FILES.getlist('images')
+            if not images:
+                return api_response(is_success=False, error_message="No images provided", status_code=status.HTTP_400_BAD_REQUEST)
             
-            CourtImage.objects.create(court=court, image=image)
-            return api_response(is_success=True, result="Image uploaded successfully", status_code=status.HTTP_201_CREATED)
+            # Max 4 images check
+            current_count = court.gallery.count()
+            if current_count + len(images) > 4:
+                return api_response(is_success=False, error_message=f"Maximum 4 images allowed. You already have {current_count}.", status_code=status.HTTP_400_BAD_REQUEST)
+
+            for img in images:
+                CourtImage.objects.create(court=court, image=img)
+            
+            return api_response(is_success=True, result="Images uploaded successfully", status_code=status.HTTP_201_CREATED)
         except FutsalCourt.DoesNotExist:
             return api_response(is_success=False, error_message="Court not found", status_code=status.HTTP_404_NOT_FOUND)
+
+    def delete(self, request, court_id):
+        try:
+            image_id = request.query_params.get('image_id')
+            if not image_id:
+                return api_response(is_success=False, error_message="Image ID required", status_code=status.HTTP_400_BAD_REQUEST)
+            
+            image = CourtImage.objects.get(id=image_id, court__id=court_id, court__owner=request.user)
+            image.delete()
+            return api_response(is_success=True, result="Image deleted successfully", status_code=status.HTTP_200_OK)
+        except CourtImage.DoesNotExist:
+            return api_response(is_success=False, error_message="Image not found or not authorized", status_code=status.HTTP_404_NOT_FOUND)
 
 # ── TIME SLOTS ──────────────────────────────────────────────────────────────
 
@@ -205,7 +225,26 @@ class UserBookingListView(generics.ListAPIView):
     swagger_tags = ['Bookings']
 
     def get_queryset(self):
-        return Booking.objects.filter(user=self.request.user).order_by('-booking_date', '-id')
+        user = self.request.user
+        now = timezone.now()
+        
+        # ✅ Auto-complete past confirmed bookings
+        # 1. Bookings before today
+        # 2. Today's bookings where end_time has passed
+        Booking.objects.filter(
+            user=user,
+            status=BookingStatusEnum.CONFIRMED,
+            booking_date__lt=now.date()
+        ).update(status=BookingStatusEnum.COMPLETED)
+
+        Booking.objects.filter(
+            user=user,
+            status=BookingStatusEnum.CONFIRMED,
+            booking_date=now.date(),
+            time_slot__end_time__lt=now.time()
+        ).update(status=BookingStatusEnum.COMPLETED)
+
+        return Booking.objects.filter(user=user).order_by('-booking_date', '-id')
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -253,6 +292,22 @@ class OwnerBookingListView(APIView):
 
     def get(self, request):
         courts = FutsalCourt.objects.filter(owner=request.user)
+        now = timezone.now()
+
+        # ✅ Auto-complete past confirmed bookings for owner as well
+        Booking.objects.filter(
+            court__in=courts,
+            status=BookingStatusEnum.CONFIRMED,
+            booking_date__lt=now.date()
+        ).update(status=BookingStatusEnum.COMPLETED)
+
+        Booking.objects.filter(
+            court__in=courts,
+            status=BookingStatusEnum.CONFIRMED,
+            booking_date=now.date(),
+            time_slot__end_time__lt=now.time()
+        ).update(status=BookingStatusEnum.COMPLETED)
+
         bookings = Booking.objects.filter(court__in=courts).order_by('-booking_date', '-id')
         serializer = BookingSerializer(bookings, many=True)
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
@@ -324,6 +379,29 @@ class TournamentListView(generics.ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
+        now_date = timezone.localdate()
+        now_dt = timezone.now()
+
+        # ✅ Auto-update states based on dates
+        # 1. Upcoming -> Ongoing
+        queryset.filter(
+            state=TournamentStateEnum.UPCOMING,
+            start_date__lte=now_date,
+            end_date__gte=now_date
+        ).update(state=TournamentStateEnum.ONGOING)
+
+        # 2. Upcoming/Ongoing -> History
+        queryset.filter(
+            state__in=[TournamentStateEnum.UPCOMING, TournamentStateEnum.ONGOING],
+            end_date__lt=now_date
+        ).update(state=TournamentStateEnum.HISTORY)
+
+        # ✅ Auto-close registration if deadline passed
+        queryset.filter(
+            status=TournamentStatusEnum.OPEN,
+            registration_deadline__lt=now_dt
+        ).update(status=TournamentStatusEnum.CLOSED)
+
         serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
 
@@ -347,6 +425,26 @@ class TournamentDetailView(generics.RetrieveAPIView):
 
     def get(self, request, *args, **kwargs):
         instance = self.get_object()
+        now_date = timezone.localdate()
+        now_dt = timezone.now()
+
+        # ✅ Auto-update state/status for this specific tournament
+        updated = False
+        if instance.state == TournamentStateEnum.UPCOMING and instance.start_date and instance.end_date and instance.start_date <= now_date <= instance.end_date:
+            instance.state = TournamentStateEnum.ONGOING
+            updated = True
+        
+        if instance.state in [TournamentStateEnum.UPCOMING, TournamentStateEnum.ONGOING] and instance.end_date and instance.end_date < now_date:
+            instance.state = TournamentStateEnum.HISTORY
+            updated = True
+
+        if instance.status == TournamentStatusEnum.OPEN and instance.registration_deadline and instance.registration_deadline < now_dt:
+            instance.status = TournamentStatusEnum.CLOSED
+            updated = True
+
+        if updated:
+            instance.save()
+
         serializer = self.get_serializer(instance, context={'request': request})
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
 
@@ -437,7 +535,21 @@ class UserTournamentRegistrationsView(generics.ListAPIView):
     swagger_tags = ['Tournaments']
 
     def get_queryset(self):
-        return TournamentRegistration.objects.filter(user=self.request.user).order_by('-id')
+        user = self.request.user
+        now = timezone.now()
+
+        # ✅ Auto-complete past tournament registrations
+        # Use end_date if available, otherwise start_date
+        from django.db.models import Q
+        TournamentRegistration.objects.filter(
+            user=user,
+            status=BookingStatusEnum.CONFIRMED
+        ).filter(
+            Q(tournament__end_date__lt=now.date()) | 
+            Q(tournament__end_date__isnull=True, tournament__start_date__lt=now.date())
+        ).update(status=BookingStatusEnum.COMPLETED)
+
+        return TournamentRegistration.objects.filter(user=user).order_by('-id')
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -463,6 +575,26 @@ class OwnerTournamentListView(generics.ListAPIView):
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
+        now_date = timezone.localdate()
+        now_dt = timezone.now()
+
+        # ✅ Auto-update state/status for owner view
+        queryset.filter(
+            state=TournamentStateEnum.UPCOMING,
+            start_date__lte=now_date,
+            end_date__gte=now_date
+        ).update(state=TournamentStateEnum.ONGOING)
+
+        queryset.filter(
+            state__in=[TournamentStateEnum.UPCOMING, TournamentStateEnum.ONGOING],
+            end_date__lt=now_date
+        ).update(state=TournamentStateEnum.HISTORY)
+
+        queryset.filter(
+            status=TournamentStatusEnum.OPEN,
+            registration_deadline__lt=now_dt
+        ).update(status=TournamentStatusEnum.CLOSED)
+
         serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
 

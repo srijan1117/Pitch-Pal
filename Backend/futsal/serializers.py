@@ -386,7 +386,7 @@ class TournamentCreateSerializer(serializers.ModelSerializer):
             'title', 'description', 'start_date', 'end_date', 
             'registration_deadline', 'entry_fee', 'prize_pool', 
             'team_limit', 'location', 'image', 'organizer', 'format',
-            'contact_phone', 'date'
+            'contact_phone', 'date', 'status'
         ]
 
     def validate(self, data):

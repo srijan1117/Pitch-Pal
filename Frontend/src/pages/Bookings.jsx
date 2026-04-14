@@ -280,8 +280,26 @@ export default function Bookings() {
     }
   };
 
-  const upcoming = bookings.filter(b => b.status === "pending" || b.status === "confirmed");
-  const history = bookings.filter(b => b.status === "completed" || b.status === "cancelled");
+  const isPast = (booking) => {
+    if (!booking.booking_date) return false;
+    const now = new Date();
+    const [year, month, day] = booking.booking_date.split("-").map(Number);
+    const bDate = new Date(year, month - 1, day);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (bDate < today) return true;
+    if (bDate > today) return false;
+
+    if (booking.time_slot_detail?.end_time) {
+      const [h, m] = booking.time_slot_detail.end_time.split(":").map(Number);
+      const endDateTime = new Date(year, month - 1, day, h, m);
+      return now > endDateTime;
+    }
+    return false;
+  };
+
+  const upcoming = bookings.filter(b => (b.status === "pending" || b.status === "confirmed") && !isPast(b));
+  const history = bookings.filter(b => b.status === "completed" || b.status === "cancelled" || isPast(b));
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
