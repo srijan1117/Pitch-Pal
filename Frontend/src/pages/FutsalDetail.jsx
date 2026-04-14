@@ -2,7 +2,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Footer } from "../components/Footer";
 import { ImageWithFallback } from "../components/ui/ImageWithFallback";
 import { FeaturedFutsals } from "../components/FeaturedFutsals";
-import { Star, MapPin, Clock, Calendar } from "lucide-react";
+import { Star, MapPin, Clock, Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import api from "../api/axios";
 import { isLoggedIn } from "../api/auth";
@@ -27,6 +27,7 @@ export default function FutsalDetail() {
   const [bookingSuccess, setBookingSuccess] = useState("");
   const [bookingError, setBookingError] = useState("");
   const [payingBooking, setPayingBooking] = useState(null);
+  const [viewerIndex, setViewerIndex] = useState(null);
 
   // Review states
   const [completedBooking, setCompletedBooking] = useState(null);
@@ -270,20 +271,43 @@ export default function FutsalDetail() {
             {/* IMAGE GALLERY */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
               <div className="md:col-span-3">
-                <ImageWithFallback
-                  src={allImages[0]}
-                  alt={court.name}
-                  className="w-full h-64 md:h-[420px] object-cover rounded-xl shadow"
-                />
+                <div 
+                  className="cursor-pointer overflow-hidden rounded-xl shadow group relative"
+                  onClick={() => setViewerIndex(0)}
+                >
+                  <ImageWithFallback
+                    src={allImages[0]}
+                    alt={court.name}
+                    className="w-full h-64 md:h-[420px] object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                </div>
               </div>
               <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-visible">
-                {allImages.slice(1, 4).map((img, idx) => (
-                  <ImageWithFallback
-                    key={idx}
-                    src={img}
-                    className="h-24 md:h-28 w-24 md:w-full rounded-lg object-cover flex-shrink-0"
-                  />
-                ))}
+                {allImages.slice(1, 4).map((img, idx) => {
+                  const actualIndex = idx + 1;
+                  const isLast = idx === 2;
+                  const hasMore = allImages.length > 4;
+
+                  return (
+                    <div 
+                      key={idx} 
+                      className="h-24 md:h-28 w-24 md:w-full rounded-lg overflow-hidden relative group cursor-pointer"
+                      onClick={() => setViewerIndex(actualIndex)}
+                    >
+                      <ImageWithFallback
+                        src={img}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      {isLast && hasMore && (
+                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <span className="text-white font-bold text-lg">+{allImages.length - 4}</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -539,6 +563,58 @@ export default function FutsalDetail() {
               setBookingSuccess(""); // Clear the message when modal is closed
             }}
           />
+        )}
+
+        {/* IMAGE LIGHTBOX */}
+        {viewerIndex !== null && (
+          <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-sm">
+            <button 
+              onClick={() => setViewerIndex(null)}
+              className="absolute top-6 right-6 text-white hover:text-gray-300 transition-colors z-[110]"
+            >
+              <X className="w-8 h-8" />
+            </button>
+
+            <div className="relative w-full max-w-5xl aspect-video flex items-center justify-center">
+              <button 
+                onClick={(e) => { e.stopPropagation(); setViewerIndex(prev => (prev > 0 ? prev - 1 : allImages.length - 1)); }}
+                className="absolute left-0 md:-left-20 text-white hover:bg-white/10 p-4 rounded-full transition-all z-[110]"
+              >
+                <ChevronLeft className="w-10 h-10" />
+              </button>
+
+              <img 
+                src={allImages[viewerIndex]} 
+                alt="Gallery preview"
+                className="max-w-full max-h-[75vh] object-contain shadow-2xl rounded-sm transition-opacity duration-300"
+              />
+
+              <button 
+                onClick={(e) => { e.stopPropagation(); setViewerIndex(prev => (prev < allImages.length - 1 ? prev + 1 : 0)); }}
+                className="absolute right-0 md:-right-20 text-white hover:bg-white/10 p-4 rounded-full transition-all z-[110]"
+              >
+                <ChevronRight className="w-10 h-10" />
+              </button>
+            </div>
+
+            <div className="mt-8 flex gap-3 overflow-x-auto max-w-full px-4 py-2 scrollbar-hide">
+              {allImages.map((img, i) => (
+                <button 
+                  key={i}
+                  onClick={() => setViewerIndex(i)}
+                  className={`relative flex-shrink-0 h-20 w-20 rounded-xl overflow-hidden border-2 transition-all duration-300 ${
+                    viewerIndex === i ? "border-green-500 scale-110 shadow-lg shadow-green-500/20" : "border-transparent opacity-40 hover:opacity-100 hover:scale-105"
+                  }`}
+                >
+                  <img src={img} className="w-full h-full object-cover" alt={`Thumb ${i}`} />
+                </button>
+              ))}
+            </div>
+            
+            <p className="text-gray-400 mt-6 text-sm font-semibold tracking-wider">
+              {viewerIndex + 1} / {allImages.length}
+            </p>
+          </div>
         )}
       </div>
     );
