@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   MapPin,
   Calendar,
@@ -26,7 +27,18 @@ import { Footer } from "../components/Footer";
 import { FeaturedFutsals } from "../components/FeaturedFutsals";
 
 function Home() {
+  const navigate = useNavigate();
   const [selectedTime, setSelectedTime] = useState("");
+  const [location, setLocation] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (location) params.append("location", location);
+    if (date) params.append("date", date);
+    if (selectedTime) params.append("time", selectedTime);
+    navigate(`/browse?${params.toString()}`);
+  };
 
   const timeSlots = [
     "06:00 AM - 07:00 AM",
@@ -161,6 +173,36 @@ function Home() {
     },
   ];
 
+  const playerSteps = [
+    {
+      icon: <Search className="w-12 h-12" />,
+      title: "Explore Courts",
+      description:
+        "Find top-rated futsal venues in your city with our smart location-based search.",
+      gradient: "from-amber-100 to-amber-200",
+      iconBg: "bg-amber-500",
+      number: "1",
+    },
+    {
+      icon: <Calendar className="w-12 h-12" />,
+      title: "Pick Your Slot",
+      description:
+        "Check real-time availability and select the time that fits your team's schedule perfectly.",
+      gradient: "from-green-100 to-green-200",
+      iconBg: "bg-green-500",
+      number: "2",
+    },
+    {
+      icon: <Zap className="w-12 h-12" />,
+      title: "Confirm & Play",
+      description:
+        "Secure your booking instantly with flexible payments and get ready for the kickoff!",
+      gradient: "from-cyan-100 to-cyan-200",
+      iconBg: "bg-cyan-500",
+      number: "3",
+    },
+  ];
+
   const ownerSteps = [
     {
       icon: <FileCheck className="w-12 h-12" />,
@@ -238,6 +280,8 @@ function Home() {
                     <input
                       type="text"
                       placeholder="KamalPokhari"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
                       className="w-full px-4 py-3 md:py-3.5 rounded-lg bg-white/90 text-gray-800 placeholder-gray-500 border-2 border-transparent focus:border-green-500 focus:outline-none transition-all"
                     />
                   </div>
@@ -252,7 +296,8 @@ function Home() {
                     </div>
                     <input
                       type="date"
-                      defaultValue="2025-11-04"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
                       className="w-full px-4 py-3 md:py-3.5 rounded-lg bg-white/90 text-gray-800 border-2 border-transparent focus:border-green-500 focus:outline-none transition-all"
                     />
                   </div>
@@ -281,13 +326,13 @@ function Home() {
                 </div>
 
                 {/* Search Button */}
-                <Link
-                  to="/browse"
+                <button
+                  onClick={handleSearch}
                   className="w-full mt-6 md:mt-8 px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-xl font-medium text-lg md:text-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
                 >
                   <Search className="w-5 h-5" />
                   <span>Search Futsal</span>
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -312,14 +357,12 @@ function Home() {
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center text-gray-900 mb-8 md:mb-16">
             How it works
           </h2>
-          <div className="flex justify-center">
-            <div className="relative w-full max-w-2xl h-64 md:h-96 rounded-2xl overflow-hidden shadow-xl border border-gray-200">
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1641029185333-7ed62a19d5f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NjZXIlMjBmaWVsZCUyMGFlcmlhbHxlbnwxfHx8fDE3NjgyMjg3OTB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                alt="How it works diagram"
-                className="w-full h-full object-cover"
-              />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 relative">
+            <div className="hidden md:block absolute top-24 left-0 right-0 h-1 bg-gradient-to-r from-amber-300 via-green-300 to-cyan-300 transform -translate-y-1/2 mx-[10%]"></div>
+
+            {playerSteps.map((step, index) => (
+              <StepCard key={index} step={step} index={index} />
+            ))}
           </div>
         </div>
       </section>

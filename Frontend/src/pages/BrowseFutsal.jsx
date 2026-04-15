@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Search, MapPin, Clock } from "lucide-react";
 import { FutsalCard } from "../components/FutsalCard";
 import { BenefitCard } from "../components/BenefitCard";
@@ -6,9 +7,10 @@ import { Zap, Users, Shield, DollarSign, Smartphone, Target } from "lucide-react
 import api from "../api/axios";
 
 export default function BrowseFutsal() {
-    const [search, setSearch] = useState("");
-    const [location, setLocation] = useState("");
-    const [selectedTime, setSelectedTime] = useState("");
+    const [searchParams] = useSearchParams();
+    const [search, setSearch] = useState(searchParams.get("search") || "");
+    const [location, setLocation] = useState(searchParams.get("location") || "");
+    const [selectedTime, setSelectedTime] = useState(searchParams.get("time") || "");
     const [sortBy, setSortBy] = useState("recommended");
     const [visibleCount, setVisibleCount] = useState(6);
     const [courts, setCourts] = useState([]);
@@ -115,8 +117,13 @@ export default function BrowseFutsal() {
     };
 
     useEffect(() => {
-        fetchCourts({ search: "", location: "", time: "", sort: "recommended" });
-    }, []);
+        fetchCourts({
+            search: searchParams.get("search") || "",
+            location: searchParams.get("location") || "",
+            time: searchParams.get("time") || "",
+            sort: sortBy
+        });
+    }, [searchParams, sortBy]);
 
     const onSearchSubmit = (e) => {
         e.preventDefault();
