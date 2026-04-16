@@ -122,8 +122,8 @@ class BookingSerializer(serializers.ModelSerializer):
             status__in=[BookingStatusEnum.CONFIRMED, BookingStatusEnum.COMPLETED]
         )
 
-        # Check for very recent pending bookings (15-minute lock)
-        lock_time = timezone.now() - timedelta(minutes=15)
+        # Check for very recent pending bookings (5-minute lock)
+        lock_time = timezone.now() - timedelta(minutes=5)
         existing_pending = Booking.objects.filter(
             court=court,
             time_slot=time_slot,
@@ -140,7 +140,7 @@ class BookingSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('This slot is already booked for the selected date.')
             
         if existing_pending.exists():
-            raise serializers.ValidationError('This slot is currently being booked by another user. Please try again in 15 minutes.')
+            raise serializers.ValidationError('This slot is currently being booked by another user. Please try again in 5 minutes.')
 
         return data
 
@@ -207,8 +207,8 @@ class WalkinBookingSerializer(serializers.ModelSerializer):
         if existing_confirmed.exists():
             raise serializers.ValidationError('This slot is already booked.')
 
-        # Check for active Pending bookings (15 min lock)
-        lock_time = timezone.now() - timedelta(minutes=15)
+        # Check for active Pending bookings (5 min lock)
+        lock_time = timezone.now() - timedelta(minutes=5)
         existing_pending = Booking.objects.filter(
             court=court,
             time_slot=time_slot,
@@ -218,7 +218,7 @@ class WalkinBookingSerializer(serializers.ModelSerializer):
         )
 
         if existing_pending.exists():
-            raise serializers.ValidationError('This slot is currently being booked by another user online. Please try again in 15 minutes.')
+            raise serializers.ValidationError('This slot is currently being booked by another user online. Please try again in 5 minutes.')
 
         return data
 
