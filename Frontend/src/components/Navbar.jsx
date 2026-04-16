@@ -73,6 +73,9 @@ export default function Navbar() {
               <NavLink to="/bookings" className={linkClass}>My Bookings</NavLink>
             )}
             <NavLink to="/tournaments" className={linkClass}>Tournaments</NavLink>
+            {loggedIn && (currentRole === "admin" || currentRole === "superuser") && (
+              <a href="http://localhost:8000/admin/" className="text-gray-600 hover:text-green-600 transition-colors">Admin Dashboard</a>
+            )}
           </div>
 
           {/* Right side */}
@@ -137,6 +140,9 @@ export default function Navbar() {
               <NavLink to="/bookings" className={mobileLinkClass} onClick={() => setIsMenuOpen(false)}>My Bookings</NavLink>
             )}
             <NavLink to="/tournaments" className={mobileLinkClass} onClick={() => setIsMenuOpen(false)}>Tournaments</NavLink>
+            {loggedIn && (currentRole === "admin" || currentRole === "superuser") && (
+              <a href="http://localhost:8000/admin/" className="block px-4 py-2 rounded-lg hover:bg-green-50 text-gray-700 font-medium" onClick={() => setIsMenuOpen(false)}>Admin Dashboard</a>
+            )}
 
             {loggedIn ? (
               <>

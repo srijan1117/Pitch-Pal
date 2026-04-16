@@ -13,8 +13,13 @@ export default function Login() {
   useEffect(() => {
     if (!isSessionExpired() && localStorage.getItem("access_token")) {
       const role = localStorage.getItem("role");
-      if (role === "owner") navigate("/owner/dashboard");
-      else navigate("/home");
+      if (role === "admin" || role === "superuser") {
+        window.location.href = "http://localhost:8000/admin/";
+      } else if (role === "owner") {
+        navigate("/owner/dashboard");
+      } else {
+        navigate("/home");
+      }
     } else {
       clearSession();
     }
@@ -31,7 +36,9 @@ export default function Login() {
 
     try {
       const data = await loginUser(form);
-      if (data?.role === "owner") {
+      if (data?.role === "admin" || data?.role === "superuser") {
+        window.location.href = "http://localhost:8000/admin/";
+      } else if (data?.role === "owner") {
         navigate("/owner/dashboard");
       } else {
         navigate("/home");
@@ -145,6 +152,18 @@ export default function Login() {
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>
+
+            <button
+              type="button"
+              onClick={() => window.location.href = "http://localhost:8000/admin/"}
+              className="w-full rounded-xl border-2 border-green-600 bg-transparent py-3 font-bold text-green-600 transition-all hover:bg-green-50 active:scale-[0.98] shadow-sm flex items-center justify-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+              </svg>
+              Admin Dashboard
+            </button>
+
 
             <div className="pt-4 text-center">
               <p className="text-sm text-gray-500">
