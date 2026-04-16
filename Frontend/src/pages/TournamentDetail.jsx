@@ -1,7 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Trophy, Calendar, MapPin, Users, ArrowLeft, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Footer } from "../components/Footer";
 import api from "../api/axios";
 import { isLoggedIn } from "../api/auth";
 import KhaltiPaymentModal from "../components/KhaltiPaymentModal";
@@ -251,7 +250,6 @@ export default function TournamentDetail() {
           </div>
         </div>
       </main>
-      <Footer />
 
       {/* Registration Modal */}
       {isModalOpen && (

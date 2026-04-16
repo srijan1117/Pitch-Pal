@@ -1,5 +1,4 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { Footer } from "../components/Footer";
 import { ImageWithFallback } from "../components/ui/ImageWithFallback";
 import { FeaturedFutsals } from "../components/FeaturedFutsals";
 import { Star, MapPin, Clock, Calendar, ChevronLeft, ChevronRight, X } from "lucide-react";
@@ -551,7 +550,6 @@ export default function FutsalDetail() {
             </div>
           </div>
         </main>
-        <Footer />
 
         {/* Khalti Payment Modal */}
         {payingBooking && (

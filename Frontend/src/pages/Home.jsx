@@ -23,7 +23,6 @@ import { Link } from "react-router-dom";
 import { ImageWithFallback } from "../components/ui/ImageWithFallback";
 import { BenefitCard } from "../components/BenefitCard";
 import { StepCard } from "../components/StepCard";
-import { Footer } from "../components/Footer";
 import { FeaturedFutsals } from "../components/FeaturedFutsals";
 
 function Home() {
@@ -437,7 +436,6 @@ function Home() {
         </div>
       </section>
 
-      <Footer />
     </div>
   );
 }

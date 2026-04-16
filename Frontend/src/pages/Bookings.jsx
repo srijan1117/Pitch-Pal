@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Calendar, MapPin, CheckCircle2, XCircle, AlertCircle, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Footer } from "../components/Footer";
 import { FeaturedFutsals } from "../components/FeaturedFutsals";
 import api from "../api/axios";
 import CancelBookingModal from "../components/CancelBookingModal";
@@ -404,7 +403,6 @@ export default function Bookings() {
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }
