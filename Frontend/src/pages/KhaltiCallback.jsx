@@ -27,11 +27,13 @@ export default function KhaltiCallback() {
       try {
         const payload = { pidx };
         
-        // Handle prefixed IDs (BK-xxx or REG-xxx)
+        // Handle prefixed IDs (BK-xxx, REG-xxx, or WB-xxx)
         if (purchaseOrderId.startsWith("REG-")) {
           payload.registration_id = parseInt(purchaseOrderId.replace("REG-", ""));
         } else if (purchaseOrderId.startsWith("BK-")) {
           payload.booking_id = parseInt(purchaseOrderId.replace("BK-", ""));
+        } else if (purchaseOrderId.startsWith("WB-")) {
+          payload.weekly_booking_id = parseInt(purchaseOrderId.replace("WB-", ""));
         } else {
           // Fallback for old style numeric IDs
           payload.booking_id = parseInt(purchaseOrderId);

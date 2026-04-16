@@ -34,9 +34,12 @@ from accounts.models import RoleEnum
 KHALTI_INITIATE_URL = "https://a.khalti.com/api/v2/epayment/initiate/"
 KHALTI_LOOKUP_URL = "https://a.khalti.com/api/v2/epayment/lookup/"
 
-def parse_khalti_amount(amount_str):
-    if not amount_str: return 0
-    clean_str = str(amount_str).replace('Rs', '').replace('Rs.', '').replace(',', '').strip()
+def parse_khalti_amount(amount):
+    if amount is None: return 0
+    if isinstance(amount, (int, float, Decimal)): return float(amount)
+    
+    # Handle string cases like "Rs 500" or "500.00"
+    clean_str = str(amount).replace('Rs', '').replace('Rs.', '').replace(',', '').strip()
     try: return float(clean_str)
     except: return 0
 
@@ -155,9 +158,9 @@ class CourtTimeSlotsView(APIView):
                     status__in=[BookingStatusEnum.CONFIRMED, BookingStatusEnum.COMPLETED]
                 )
                 
-                # 2. Pending bookings created in the last 15 minutes (temporary lock)
+                # 2. Pending bookings created in the last 5 minutes (temporary lock)
                 from datetime import timedelta
-                lock_time = timezone.now() - timedelta(minutes=15)
+                lock_time = timezone.now() - timedelta(minutes=5)
                 
                 pending_bookings = Booking.objects.filter(
                     court_id=court_id,
@@ -710,7 +713,7 @@ class KhaltiInitiateView(APIView):
             "customer_info": {
                 "name": request.user.email,
                 "email": request.user.email,
-                "phone": request.user.phone_number or "9800000000",
+                "phone": request.user.phone_number if (request.user.phone_number and len(request.user.phone_number) >= 10) else "9800000000",
             },
         }
 

@@ -38,7 +38,8 @@ export default function KhaltiPaymentModal({ booking, registration, weeklyBookin
         setError(errorMsg);
       }
     } catch (err) {
-      setError("An error occurred while connecting to Khalti. Please check your connection.");
+      const errorMsg = err.response?.data?.ErrorMessage || err.response?.data?.detail || "An error occurred while connecting to Khalti. Please check your connection.";
+      setError(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg));
     } finally {
       setLoading(false);
     }

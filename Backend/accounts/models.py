@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
+from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -45,7 +45,7 @@ class UserManager(BaseUserManager):
 
         return self.create_user(email, password, phone_number, role, address, **extra_fields)
 
-class User(AbstractBaseUser):
+class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=200, unique=True)
     role = models.CharField(
         max_length=20,
@@ -57,7 +57,6 @@ class User(AbstractBaseUser):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
-    is_superuser = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
 
     objects = UserManager()
@@ -77,16 +76,6 @@ class User(AbstractBaseUser):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
-
-    def has_perm(self, perm, obj=None):
-        if self.is_superuser:
-            return True
-        return False
-
-    def has_module_perms(self, app_label):
-        if self.is_superuser:
-            return True
-        return False
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_profile')
