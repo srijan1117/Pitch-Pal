@@ -9,8 +9,15 @@ export default function OwnerOverview({ courts, bookings, onTabChange, onRefresh
   const [showWalkIn, setShowWalkIn] = useState(false);
 
   const today = new Date().toISOString().split("T")[0];
+  
+  // We filter the list of bookings to count only those that match today's date.
   const todaysBookings = bookings.filter(b => b.booking_date === today).length;
+  
+  // We count any booking that is still 'pending' so the owner knows they have new requests.
   const pendingBookings = bookings.filter(b => b.status === "pending").length;
+  
+  // To calculate total revenue, we only sum up bookings that are 'confirmed' or 'completed'.
+  // We skip 'pending' or 'cancelled' ones because we haven't received payment for those.
   const totalRevenue = bookings
     .filter(b => b.status === "confirmed" || b.status === "completed")
     .reduce((acc, b) => acc + parseFloat(b.total_amount || 0), 0);
@@ -18,7 +25,7 @@ export default function OwnerOverview({ courts, bookings, onTabChange, onRefresh
   return (
     <div className="space-y-6">
 
-      {/* Stats + Walk-in button */}
+
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">Overview</h2>
         <button
@@ -29,7 +36,7 @@ export default function OwnerOverview({ courts, bookings, onTabChange, onRefresh
         </button>
       </div>
 
-      {/* Stats */}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Courts" value={courts.length} icon={<Home className="w-5 h-5" />} color="blue" />
         <StatCard title="Today's Bookings" value={todaysBookings} icon={<Calendar className="w-5 h-5" />} color="green" />
@@ -37,10 +44,10 @@ export default function OwnerOverview({ courts, bookings, onTabChange, onRefresh
         <StatCard title="Total Revenue" value={`Rs ${totalRevenue.toLocaleString()}`} icon={<DollarSign className="w-5 h-5" />} color="purple" />
       </div>
 
-      {/* Analytics Charts */}
+
       <DashboardCharts bookings={bookings} />
 
-      {/* Recent Bookings */}
+
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800">Recent Bookings</h2>
@@ -82,7 +89,7 @@ export default function OwnerOverview({ courts, bookings, onTabChange, onRefresh
         </div>
       </div>
 
-      {/* My Courts Summary */}
+
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-800">My Courts</h2>
@@ -118,7 +125,7 @@ export default function OwnerOverview({ courts, bookings, onTabChange, onRefresh
         </div>
       </div>
 
-      {/* Walk-in Modal */}
+
       {showWalkIn && (
         <WalkInModal
           courts={courts}

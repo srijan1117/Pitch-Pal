@@ -24,6 +24,7 @@ class FutsalCourt(models.Model):
 
     @property
     def average_rating(self):
+        # We calculate the average of all reviews for this court and round it to 1 decimal place.
         reviews = self.reviews.all()
         if reviews.exists():
             return round(sum(r.rating for r in reviews) / reviews.count(), 1)
@@ -164,7 +165,7 @@ class Payment(models.Model):
 
 
 class Review(models.Model):
-    RATING_CHOICES = [(i, str(i)) for i in range(1, 6)]  # 1 to 5 stars
+    RATING_CHOICES = [(i, str(i)) for i in range(1, 6)]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
     court = models.ForeignKey(FutsalCourt, on_delete=models.CASCADE, related_name='reviews')
@@ -206,7 +207,7 @@ class TournamentStatusEnum(models.TextChoices):
 class Tournament(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='organized_tournaments', null=True, blank=True)
     title = models.CharField(max_length=200)
-    organizer = models.CharField(max_length=200) # Display name
+    organizer = models.CharField(max_length=200)
     location = models.CharField(max_length=255)
     start_date = models.DateField(blank=True, null=True)  
     end_date = models.DateField(blank=True, null=True)

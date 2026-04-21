@@ -88,9 +88,9 @@ export default function OwnerDashboard() {
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
 
-      {/* ── Desktop Sidebar ──────────────────────────────────────────────────── */}
+
       <aside className="hidden md:flex w-64 bg-gray-900 text-white flex-col shrink-0">
-        {/* Logo */}
+
         <div className="p-6 border-b border-gray-800 flex items-center gap-3">
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-sm">
             <img src={logo} alt="PitchPal Logo" className="w-full h-full object-contain" />
@@ -98,7 +98,7 @@ export default function OwnerDashboard() {
           <span className="text-xl font-black text-white tracking-tight">PitchPal</span>
         </div>
 
-        {/* Nav */}
+
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map(item => (
             <button
@@ -116,7 +116,7 @@ export default function OwnerDashboard() {
           ))}
         </nav>
 
-        {/* Logout */}
+
         <div className="p-4 border-t border-gray-800">
           <button
             onClick={() => setIsLogoutModalOpen(true)}
@@ -128,10 +128,10 @@ export default function OwnerDashboard() {
         </div>
       </aside>
 
-      {/* ── Main Area ────────────────────────────────────────────────────────── */}
+
       <div className="flex-1 flex flex-col overflow-hidden">
 
-        {/* Top bar */}
+
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 shadow-sm shrink-0">
           <div className="flex items-center gap-3">
             <button className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition"
@@ -148,7 +148,7 @@ export default function OwnerDashboard() {
           </button>
         </header>
 
-        {/* Page content */}
+
         <main className="flex-1 overflow-y-auto bg-gray-50 p-4 sm:p-6">
           {activeTab === "overview" && (
             <OwnerOverview courts={courts} bookings={bookings} onTabChange={handleTabChange} onRefresh={fetchData}/>
@@ -165,7 +165,7 @@ export default function OwnerDashboard() {
         </main>
       </div>
 
-      {/* ── Mobile Sidebar ───────────────────────────────────────────────────── */}
+
       {isMobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />

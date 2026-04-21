@@ -2,6 +2,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from accounts.models import User, Profile
 
+# This "Signal" function automatically runs every time a User is saved to the database.
+# If a new user is created, it automatically makes a Profile for them.
 @receiver(post_save, sender=User)
 def create_or_update_profile(sender, instance, created, **kwargs):
     if created:
@@ -14,7 +16,7 @@ def create_or_update_profile(sender, instance, created, **kwargs):
         profile.address_sync = instance.address
         profile.save()
 
-#if Profile is updated, update synced fields of User (address)
+
 @receiver(post_save, sender=Profile)
 def sync_profile_to_user(sender, instance, **kwargs):
     user = instance.user

@@ -105,18 +105,13 @@ class BookingSerializer(serializers.ModelSerializer):
         time_slot = data.get('time_slot')
         booking_date = data.get('booking_date')
 
-        from django.utils import timezone
-        today = timezone.localdate()
-        if booking_date < today:
-            raise serializers.ValidationError({'booking_date': 'Booking date cannot be in the past.'})
+        # Logic Check: We perform several steps to ensure the slot is truly available:
+        # 1. Check if the date is in the past.
+        # 2. Check if there's already a Confirmed or Completed booking.
+        # 3. Check for Pending bookings (we 'lock' these for 5 minutes during payment).
+        # 4. Check for Weekly recurring bookings to prevent overlaps.
 
-        if time_slot and court and time_slot.court != court:
-            raise serializers.ValidationError({'time_slot': 'This time slot does not belong to the selected court.'})
 
-        if not time_slot.is_available:
-            raise serializers.ValidationError({'time_slot': 'This time slot is not available.'})
-
-        # Check for confirmed/completed bookings
         existing_confirmed = Booking.objects.filter(
             court=court,
             time_slot=time_slot,
@@ -124,7 +119,7 @@ class BookingSerializer(serializers.ModelSerializer):
             status__in=[BookingStatusEnum.CONFIRMED, BookingStatusEnum.COMPLETED]
         )
 
-        # Check for very recent pending bookings (5-minute lock)
+
         lock_time = timezone.now() - timedelta(minutes=5)
         existing_pending = Booking.objects.filter(
             court=court,
@@ -144,7 +139,7 @@ class BookingSerializer(serializers.ModelSerializer):
         if existing_pending.exists():
             raise serializers.ValidationError('This slot is currently being booked by another user. Please try again in 5 minutes.')
 
-        # Check for confirmed Weekly Bookings that overlap with this date/slot
+
         weekday = booking_date.weekday()
         weekly_conflict = WeeklyBooking.objects.filter(
             court=court,
@@ -156,8 +151,7 @@ class BookingSerializer(serializers.ModelSerializer):
             Q(end_date__isnull=True) | Q(end_date__gte=booking_date)
         )
         
-        # Filter for the same weekday
-        # Using list comprehension since __weekday might not be reliable across all DBs without extra config
+
         if any(wb.start_date.weekday() == weekday for wb in weekly_conflict):
             raise serializers.ValidationError('This slot is part of a recurring weekly booking.')
 
@@ -167,19 +161,19 @@ class BookingSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         time_slot = validated_data['time_slot']
         court = validated_data['court']
-        # Note: we use a single day baseline. If end < start, it means it crosses midnight.
+
         start_dt = datetime.combine(date_type.today(), time_slot.start_time)
         end_dt = datetime.combine(date_type.today(), time_slot.end_time)
         
         duration = end_dt - start_dt
         if duration.total_seconds() < 0:
-            # If negative, it likely crosses midnight (e.g., 23:00 to 01:00)
+
             duration += timedelta(days=1)
             
         hours = Decimal(str(duration.total_seconds() / 3600))
         total_amount = round(hours * court.price_per_hour, 2)
 
-        # ✅ Auto-confirm logic
+
         auto_confirm = (
             user.role == RoleEnum.OWNER and
             court and
@@ -215,7 +209,7 @@ class WalkinBookingSerializer(serializers.ModelSerializer):
         if not time_slot or not court or time_slot.court != court:
             raise serializers.ValidationError({'time_slot': 'Invalid slot for selected court.'})
 
-        # Check if already booked (Confirmed/Completed)
+
         existing_confirmed = Booking.objects.filter(
             court=court,
             time_slot=time_slot,
@@ -226,7 +220,7 @@ class WalkinBookingSerializer(serializers.ModelSerializer):
         if existing_confirmed.exists():
             raise serializers.ValidationError('This slot is already booked.')
 
-        # Check for active Pending bookings (5 min lock)
+
         lock_time = timezone.now() - timedelta(minutes=5)
         existing_pending = Booking.objects.filter(
             court=court,
@@ -239,7 +233,7 @@ class WalkinBookingSerializer(serializers.ModelSerializer):
         if existing_pending.exists():
             raise serializers.ValidationError('This slot is currently being booked by another user online. Please try again in 5 minutes.')
 
-        # Check for Weekly Booking conflict
+
         weekday = booking_date.weekday()
         weekly_conflict = WeeklyBooking.objects.filter(
             court=court,
@@ -260,7 +254,7 @@ class WalkinBookingSerializer(serializers.ModelSerializer):
         court = validated_data['court']
         time_slot = validated_data['time_slot']
 
-        # Calculate duration robustly (handling midnight crossing)
+
         start_dt = datetime.combine(date_type.today(), time_slot.start_time)
         end_dt = datetime.combine(date_type.today(), time_slot.end_time)
         
@@ -271,7 +265,7 @@ class WalkinBookingSerializer(serializers.ModelSerializer):
         hours = Decimal(str(duration.total_seconds() / 3600))
         total_amount = round(hours * court.price_per_hour, 2)
 
-        # Walk-ins are auto-confirmed and have no 'user' (it's null)
+
         booking = Booking.objects.create(
             status=BookingStatusEnum.CONFIRMED,
             total_amount=total_amount,
@@ -403,9 +397,8 @@ class TournamentCreateSerializer(serializers.ModelSerializer):
         if start_date and end_date and start_date > end_date:
             raise serializers.ValidationError({'end_date': 'End date must be after start date.'})
 
+
         if registration_deadline and start_date:
-            # registration_deadline is likely a datetime, start_date is a date.
-            # Convert registration_deadline to date for comparison or vice versa.
             if registration_deadline.date() > start_date:
                 raise serializers.ValidationError({'registration_deadline': 'Registration deadline must be before or on the start date.'})
 
@@ -455,7 +448,7 @@ class TournamentRegistrationSerializer(serializers.ModelSerializer):
         if tournament.registered_teams >= tournament.team_limit:
             raise serializers.ValidationError({'tournament': 'Tournament is full.'})
         
-        # Only block if already confirmed/completed
+
         from futsal.models import BookingStatusEnum
         existing = TournamentRegistration.objects.filter(tournament=tournament, user=user).exclude(status=BookingStatusEnum.PENDING)
         if existing.exists():

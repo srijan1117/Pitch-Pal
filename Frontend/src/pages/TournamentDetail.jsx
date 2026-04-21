@@ -51,11 +51,8 @@ export default function TournamentDetail() {
   const handleRegister = async () => {
     if (!isLoggedIn()) { navigate("/login"); return; }
     
-    // Validation
-    const trimmedTeamName = teamName.trim();
-    const phoneRegex = /^(98|97)\d{8}$/;
-    const validPlayers = playerNames.filter(p => p.trim().length > 0);
-
+    // Validation: We check if the team name, phone number, and player list are correct.
+    // For example, a team must have at least 5 players to be valid.
     if (trimmedTeamName.length < 3) {
       setRegError("Team name must be at least 3 characters long.");
       return;
@@ -120,7 +117,7 @@ export default function TournamentDetail() {
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
       <main className="flex-grow w-full pb-16">
 
-        {/* Hero Image */}
+
         <div className="relative h-64 md:h-96 w-full">
           <img
             src={tournament.image || "https://images.unsplash.com/photo-1518605348400-437731df48d4?q=80&w=2070"}
@@ -150,7 +147,7 @@ export default function TournamentDetail() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 md:mt-12">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-            {/* Main Content */}
+
             <div className="lg:col-span-2 space-y-8">
               <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Tournament Overview</h2>
@@ -208,7 +205,7 @@ export default function TournamentDetail() {
               </div>
             </div>
 
-            {/* Sidebar */}
+
             <div className="lg:col-span-1">
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 sticky top-24">
                 <h3 className="text-xl font-bold text-gray-900 mb-6">Registration Details</h3>
@@ -281,7 +278,7 @@ export default function TournamentDetail() {
         </div>
       </main>
 
-      {/* Registration Modal */}
+
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -348,7 +345,7 @@ export default function TournamentDetail() {
         </div>
       )}
 
-      {/* eSewa Payment Modal */}
+
       {payingRegistration && (
         <EsewaPaymentModal
           registration={payingRegistration}

@@ -9,6 +9,8 @@ export async function loginUser(payload) {
     throw new Error("No access token returned");
   }
 
+  // After successful login, we save the tokens and user info in the browser's localStorage.
+  // This helps keep the user logged in even if they refresh the page.
   localStorage.setItem("access_token", data.access_token);
   localStorage.setItem("refresh_token", data.refresh_token);
   localStorage.setItem("login_time", Date.now().toString());

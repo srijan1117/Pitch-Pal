@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import api from "../api/axios";
 
 function TournamentCard({ tournament }) {
+  // We check if the tournament is 'Open' for registration.
+  // If it is, we show a green button to join; otherwise, it shows as closed.
   const isOpen = tournament.status === "Registration Open";
 
   return (

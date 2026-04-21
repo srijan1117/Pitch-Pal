@@ -26,7 +26,9 @@ export function ProfileModal({ close }) {
 
   const navigate = useNavigate();
 
-  // ── Fetch real user data ──────────────────────────────────────────────
+
+  // When the profile modal opens, we fetch the detailed profile info from the backend.
+  // We also grab the email and role that were saved in the browser during login.
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -129,7 +131,7 @@ export function ProfileModal({ close }) {
   return (
     <div className="fixed inset-x-4 top-20 sm:absolute sm:inset-auto sm:right-0 sm:top-14 z-50 w-auto sm:w-[520px] max-h-[85vh] overflow-y-auto bg-white rounded-2xl shadow-2xl p-4 sm:p-6">
 
-      {/* Header */}
+
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-semibold">My Profile</h2>
         <button onClick={close}><X className="w-5 h-5 text-gray-500" /></button>
@@ -141,7 +143,7 @@ export function ProfileModal({ close }) {
         </div>
       ) : (
         <>
-          {/* Profile Section */}
+
           <div className="flex items-center gap-4 mb-6">
             <div className="relative">
               <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
@@ -156,7 +158,7 @@ export function ProfileModal({ close }) {
             </div>
           </div>
 
-          {/* Profile Info */}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-sm text-gray-500">Email Address</label>
@@ -192,7 +194,7 @@ export function ProfileModal({ close }) {
             </div>
           </div>
 
-          {/* Change Password Section */}
+
           <div className="mt-10 pt-8 border-t border-gray-100">
             <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
               <Lock className="w-5 h-5 text-indigo-600" />
@@ -282,7 +284,7 @@ export function ProfileModal({ close }) {
             </div>
           </div>
 
-          {/* Footer */}
+
           <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4 sm:gap-0">
             <button onClick={() => setIsLogoutModalOpen(true)}
               className="w-full sm:w-auto px-5 py-2 rounded-lg text-red-600 font-semibold hover:bg-red-50 transition-colors">

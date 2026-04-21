@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { ImageWithFallback } from "./ui/ImageWithFallback";
 
 export function FutsalCard({ court }) {
+  // We gather the rating and review counts. 
+  // If the data is missing, we default to 0 so the UI doesn't break.
   const rating = Math.round(court.average_rating || court.rating || 0);
   const price = court.price_per_hour || court.price;
   const location = court.address || court.location;
@@ -10,7 +12,7 @@ export function FutsalCard({ court }) {
 
   return (
     <div className="group bg-white rounded-2xl overflow-hidden border border-gray-200 hover:border-green-500 transition-all duration-300 hover:shadow-2xl flex flex-col h-full">
-      {/* Image */}
+
       <div className="relative h-64 md:h-72 overflow-hidden shrink-0">
         <ImageWithFallback
           src={court.image}
@@ -20,7 +22,7 @@ export function FutsalCard({ court }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
-      {/* Content */}
+
       <div className="p-5 md:p-6 flex flex-col flex-1">
         <div className="flex items-start justify-between gap-4">
           <h3 className="text-xl md:text-2xl font-bold text-gray-900 leading-snug min-h-[3.25rem] md:min-h-[3.75rem] line-clamp-2">

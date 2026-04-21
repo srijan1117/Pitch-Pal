@@ -31,6 +31,8 @@ function Home() {
   const [location, setLocation] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
+  // When the user clicks the Search button, we collect all their choices (location, date, time)
+  // and add them as parameters to the URL so the Browse page knows what to look for.
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (location) params.append("location", location);
@@ -234,9 +236,9 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Hero Section */}
+
       <section className="relative bg-gradient-to-br from-gray-800 via-gray-900 to-black text-white py-16 md:py-24 lg:py-32 overflow-hidden">
-        {/* Background Pattern */}
+
         <div className="absolute inset-0 opacity-10">
           <div
             className="absolute inset-0"
@@ -250,7 +252,7 @@ function Home() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center space-y-6 md:space-y-8">
-            {/* Title */}
+
             <div className="space-y-3 md:space-y-4">
               <h1 className="text-2xl md:text-xl lg:text-6xl font-bold">
                 Pitch Pal
@@ -264,11 +266,11 @@ function Home() {
               </p>
             </div>
 
-            {/* Search Form */}
+
             <div className="mt-8 md:mt-12">
               <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 md:p-6 lg:p-8 max-w-5xl mx-auto border border-white/20 shadow-2xl">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                  {/* Location */}
+
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3 text-white">
                       <MapPin className="w-6 h-6 md:w-7 md:h-7" />
@@ -285,7 +287,7 @@ function Home() {
                     />
                   </div>
 
-                  {/* Date */}
+
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3 text-white">
                       <Calendar className="w-6 h-6 md:w-7 md:h-7" />
@@ -301,7 +303,7 @@ function Home() {
                     />
                   </div>
 
-                  {/* Time */}
+
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3 text-white">
                       <Clock className="w-6 h-6 md:w-7 md:h-7" />
@@ -324,7 +326,7 @@ function Home() {
                   </div>
                 </div>
 
-                {/* Search Button */}
+
                 <button
                   onClick={handleSearch}
                   className="w-full mt-6 md:mt-8 px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-xl font-medium text-lg md:text-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
@@ -338,7 +340,7 @@ function Home() {
         </div>
       </section>
 
-      {/* Featured Futsal Section */}
+
       <FeaturedFutsals />
 
       <div className="text-center pb-12 bg-white">
@@ -350,7 +352,7 @@ function Home() {
         </Link>
       </div>
 
-      {/* How it Works Section */}
+
       <section className="py-12 md:py-20 lg:py-24 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center text-gray-900 mb-8 md:mb-16">
@@ -366,7 +368,7 @@ function Home() {
         </div>
       </section>
 
-      {/* Why Choose PitchPal Section */}
+
       <section className="py-12 md:py-20 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center text-gray-900 mb-4">
@@ -384,7 +386,7 @@ function Home() {
         </div>
       </section>
 
-      {/* Owner Benefits Section */}
+
       <section className="py-12 md:py-20 lg:py-24 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
@@ -402,7 +404,7 @@ function Home() {
         </div>
       </section>
 
-      {/* Owner Steps */}
+
       <section className="py-12 md:py-20 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center text-gray-900 mb-12 md:mb-16">
@@ -419,7 +421,7 @@ function Home() {
         </div>
       </section>
 
-      {/* CTA */}
+
       <section className="py-12 md:py-20 lg:py-24 bg-gradient-to-br from-green-50 via-white to-green-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6 md:mb-8">

@@ -7,6 +7,8 @@ const api = axios.create({
   },
 });
 
+// We use a "Request Interceptor" to automatically add our secret Token to every API call.
+// This way, we don't have to manually add it every time we fetch data from the backend.
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("access_token");
@@ -20,6 +22,8 @@ api.interceptors.request.use(
   }
 );
 
+// We use a "Response Interceptor" to handle common errors like 401 Unauthorized.
+// If the backend says our token is no longer valid, we automatically log the user out and send them to the login page.
 api.interceptors.response.use(
   (response) => response,
   (error) => {

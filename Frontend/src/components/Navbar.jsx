@@ -17,7 +17,7 @@ export default function Navbar() {
   const loggedIn = isLoggedIn();
   const currentRole = localStorage.getItem("role")?.toLowerCase();
 
-  // Fetch logged-in user info
+
   useEffect(() => {
     if (!loggedIn) return;
     api.get("/accounts/user/profile/")
@@ -52,7 +52,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
 
-          {/* Logo */}
+
           <Link to="/home" className="flex-shrink-0 flex items-center gap-2 group">
             <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors shadow-sm">
               <img src={logo} alt="PitchPal Logo" className="w-10 h-10 object-contain" />
@@ -62,23 +62,30 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Nav */}
+
           <div className="hidden md:flex items-center space-x-8">
             <NavLink to="/home" className={linkClass}>Home</NavLink>
             <NavLink to="/browse" className={linkClass}>Browse Futsal Courts</NavLink>
+            
+            {/* If the user is logged in as an 'Owner', they see the dashboard link. */}
             {loggedIn && currentRole === "owner" && (
               <NavLink to="/owner" className={linkClass}>Owner Dashboard</NavLink>
             )}
+            
+            {/* If they are a regular 'User', they see their personal bookings link. */}
             {loggedIn && currentRole === "user" && (
               <NavLink to="/bookings" className={linkClass}>My Bookings</NavLink>
             )}
+            
             <NavLink to="/tournaments" className={linkClass}>Tournaments</NavLink>
+            
+            {/* Admin and Superusers get a direct link to the Django admin panel. */}
             {loggedIn && (currentRole === "admin" || currentRole === "superuser") && (
               <a href="http://localhost:8000/admin/" className="text-gray-600 hover:text-green-600 transition-colors">Admin Dashboard</a>
             )}
           </div>
 
-          {/* Right side */}
+
           <div className="flex items-center space-x-4">
             {loggedIn ? (
               <div className="hidden md:flex items-center space-x-3 group cursor-pointer">
@@ -128,7 +135,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+
         {isMenuOpen && (
           <div className="md:hidden py-4 space-y-3 border-t border-gray-200">
             <NavLink to="/home" className={mobileLinkClass} onClick={() => setIsMenuOpen(false)}>Home</NavLink>

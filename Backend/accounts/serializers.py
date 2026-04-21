@@ -25,6 +25,8 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = ['email', 'role', 'phone_number', 'address', 'password', 'confirm_password']
 
+    # We perform custom validation here to ensure data quality.
+    # For example, we check if the phone number has only digits and if a Superuser already exists.
     def validate(self, data):
         password = data['password']
         confirm_password = data["confirm_password"]

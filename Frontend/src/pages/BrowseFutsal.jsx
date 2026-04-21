@@ -77,7 +77,7 @@ export default function BrowseFutsal() {
         "09:00 PM - 10:00 PM",
     ], []);
 
-    // ── Fetch courts from backend ─────────────────────────────────────────
+
     const fetchCourts = async (filters = {}) => {
         setLoading(true);
         setError("");
@@ -85,7 +85,8 @@ export default function BrowseFutsal() {
             const res = await api.get("/futsal/courts/");
             let data = res.data?.Result || [];
 
-            // Client-side filtering
+            # Client-side filtering: We filter the results in the browser to make the search fast.
+            # We match the name and location that the user typed in.
             if (filters.search) {
                 const q = filters.search.toLowerCase();
                 data = data.filter(c => c.name.toLowerCase().includes(q));
@@ -95,7 +96,8 @@ export default function BrowseFutsal() {
                 data = data.filter(c => c.address.toLowerCase().includes(q));
             }
 
-            // Client-side sorting
+            # Client-side sorting: We also sort the courts by price (low to high) 
+            # if the user selects that option in the dropdown.
             if (filters.sort === "price_low") {
                 data.sort((a, b) => parseFloat(a.price_per_hour) - parseFloat(b.price_per_hour));
             } else if (filters.sort === "price_high") {
@@ -133,7 +135,7 @@ export default function BrowseFutsal() {
 
     return (
         <div className="min-h-screen bg-white">
-            {/* Filter row */}
+
             <div className="border-b border-gray-200 bg-white sticky top-16 z-40">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
                     <form
@@ -205,7 +207,7 @@ export default function BrowseFutsal() {
                 </div>
             </div>
 
-            {/* Main list */}
+
             <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {error && (
                     <div className="mb-6 rounded-lg bg-red-50 p-3 text-sm text-red-700">
@@ -253,7 +255,7 @@ export default function BrowseFutsal() {
                 )}
             </section>
 
-            {/* Benefits section */}
+
             <section className="py-12 md:py-20 lg:py-24 bg-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center text-gray-900 mb-4">

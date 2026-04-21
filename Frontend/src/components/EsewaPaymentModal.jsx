@@ -10,7 +10,7 @@ export default function EsewaPaymentModal({ booking, registration, weeklyBooking
   const isWeekly = !!weeklyBooking;
   const data = isTourney ? registration : (isWeekly ? weeklyBooking : booking);
 
-  // Format entry fee if it's from tournament (it's often "Rs 500")
+
   const displayAmount = isTourney
     ? (data.tournament_detail?.entry_fee || data.tournament?.entry_fee || "N/A")
     : (isWeekly ? "Rs (First 4 Weeks)" : `Rs ${data.total_amount}`);
@@ -30,8 +30,9 @@ export default function EsewaPaymentModal({ booking, registration, weeklyBooking
       const resData = result.Result ?? result.result;
 
       if (isSuccess && resData) {
-        // eSewa v2 requires a form submission to their gateway
-        // We will create a hidden form and submit it
+        // Technical Trick: eSewa expects a "POST" request from the user's browser.
+        // Since we can't easily do a POST redirect in JavaScript directly, we create
+        // a hidden HTML form, fill it with eSewa's required data, and force it to submit.
         const form = document.createElement("form");
         form.method = "POST";
         form.action = "https://rc-epay.esewa.com.np/api/epay/main/v2/form";
@@ -61,7 +62,7 @@ export default function EsewaPaymentModal({ booking, registration, weeklyBooking
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-white w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl shadow-black/20 animate-in zoom-in-95 duration-300">
-        {/* Header */}
+
         <div className="relative h-32 bg-[#60bb46] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 opacity-20">
             <div className="absolute -top-10 -left-10 w-40 h-40 bg-white rounded-full blur-3xl"></div>
@@ -80,7 +81,7 @@ export default function EsewaPaymentModal({ booking, registration, weeklyBooking
           </button>
         </div>
 
-        {/* Content */}
+
         <div className="p-8">
           <div className="mb-8 text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Confirm Payment</h2>

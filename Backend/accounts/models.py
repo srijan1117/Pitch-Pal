@@ -11,6 +11,8 @@ class RoleEnum(models.TextChoices):
     OWNER = 'owner', _('OWNER')
 
 class UserManager(BaseUserManager):
+    # This custom manager handles creating Users and Superusers using Email instead of Username.
+    # It also assigns correct permissions based on whether the person is an Owner or a regular Player.
     def create_user(self, email, password, phone_number, role, address, **extra_fields):
         if not email:
             raise ValueError("An email must be set.")

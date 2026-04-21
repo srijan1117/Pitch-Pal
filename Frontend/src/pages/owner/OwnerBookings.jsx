@@ -8,6 +8,8 @@ export default function OwnerBookings({ bookings, courts, onRefresh }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [showWalkIn, setShowWalkIn] = useState(false);
 
+  // We use this 'filtered' list to show only the bookings that match what the owner
+  // is searching for (player email or court name) and the status they select.
   const filtered = bookings.filter(b => {
     const matchSearch =
       b.court_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -19,7 +21,7 @@ export default function OwnerBookings({ bookings, courts, onRefresh }) {
   return (
     <div className="space-y-6">
 
-      {/* Header */}
+
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">All Bookings</h2>
         <button
@@ -30,7 +32,7 @@ export default function OwnerBookings({ bookings, courts, onRefresh }) {
         </button>
       </div>
 
-      {/* Filters */}
+
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -54,7 +56,7 @@ export default function OwnerBookings({ bookings, courts, onRefresh }) {
         </select>
       </div>
 
-      {/* Table */}
+
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left min-w-[700px]">
@@ -101,7 +103,7 @@ export default function OwnerBookings({ bookings, courts, onRefresh }) {
         </div>
       )}
 
-      {/* Walk-in Modal */}
+
       {showWalkIn && (
         <WalkInModal
           courts={courts}

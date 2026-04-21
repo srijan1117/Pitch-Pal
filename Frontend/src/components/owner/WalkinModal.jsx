@@ -16,6 +16,8 @@ export default function WalkInModal({ courts, onClose, onSuccess }) {
   const [success, setSuccess] = useState("");
 
   // Fetch available slots when court and date change
+  // When the owner picks a court and a date, we immediately call the backend
+  // to get the list of available time slots for that specific day.
   useEffect(() => {
     if (!form.court || !form.booking_date) return;
     setSlots([]);
@@ -29,6 +31,9 @@ export default function WalkInModal({ courts, onClose, onSuccess }) {
 
   const [submitted, setSubmitted] = useState(false);
 
+  // This function sends the walk-in customer's details to the backend.
+  // It creates a "Walk-in" booking which is automatically 'Confirmed' since 
+  // the customer is already at the futsal court.
   const handleSubmit = async () => {
     setSubmitted(true);
     if (!form.court || !form.time_slot || !form.booking_date) {

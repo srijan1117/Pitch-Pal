@@ -1,10 +1,8 @@
 from django.contrib import admin
-from futsal.models import FutsalCourt, TimeSlot, Booking, Payment
-from futsal.models import WeeklyBooking
-from futsal.models import Tournament, TournamentRegistration
-
-
-from futsal.models import FutsalCourt, TimeSlot, Booking, Payment, CourtImage
+from futsal.models import (
+    FutsalCourt, TimeSlot, Booking, Payment, 
+    WeeklyBooking, Tournament, TournamentRegistration, CourtImage
+)
 
 class CourtImageInline(admin.TabularInline):
     model = CourtImage

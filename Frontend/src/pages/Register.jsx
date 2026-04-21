@@ -36,6 +36,8 @@ export default function Register() {
 
     setLoading(true);
     try {
+      // We send the user's details (email, phone, role, and password) to the backend API.
+      // If everything is correct, the backend creates the account and we send the user to the login page.
       await api.post("/accounts/register/", formData);
       navigate("/login");
     } catch (err) {
@@ -50,7 +52,7 @@ export default function Register() {
     }
   };
 
-  // Reusable Eye Icon Component
+
   const EyeIcon = ({ show }) => (
     show ? (
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -66,7 +68,7 @@ export default function Register() {
 
   return (
     <div className="flex min-h-screen bg-white font-sans">
-      {/* LEFT SIDE: Visual/Branding */}
+
       <div className="hidden lg:flex lg:w-1/2 relative bg-green-900 items-center justify-center p-12 overflow-hidden">
         <div 
           className="absolute inset-0 z-0 opacity-50 bg-cover bg-center" 
@@ -80,7 +82,7 @@ export default function Register() {
         </div>
       </div>
 
-      {/* RIGHT SIDE: Register Form */}
+
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 md:p-12 overflow-y-auto">
         <div className="w-full max-w-lg">
           <div className="flex flex-col items-start mb-6">
@@ -98,7 +100,7 @@ export default function Register() {
           )}
 
           <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Email - Full Width */}
+
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email address</label>
               <input
@@ -109,7 +111,7 @@ export default function Register() {
               />
             </div>
 
-            {/* Phone Number */}
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
               <input
@@ -120,7 +122,7 @@ export default function Register() {
               />
             </div>
 
-            {/* Role Select */}
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Register as</label>
               <select
@@ -132,7 +134,7 @@ export default function Register() {
               </select>
             </div>
 
-            {/* Address - Full Width */}
+
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Address</label>
               <input
@@ -142,7 +144,7 @@ export default function Register() {
               />
             </div>
 
-            {/* Password */}
+
             <div className="relative">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
               <div className="relative">
@@ -158,7 +160,7 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Confirm Password */}
+
             <div className="relative">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password</label>
               <div className="relative">
@@ -174,7 +176,7 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Submit & Redirect */}
+
             <div className="md:col-span-2 pt-2">
               <button
                 type="submit" disabled={loading}

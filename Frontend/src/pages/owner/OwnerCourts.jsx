@@ -14,10 +14,9 @@ export default function OwnerCourts({ courts, onRefresh }) {
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [selectedCourt, setSelectedCourt] = useState(null);
 
-  // Confirm dialog states
-  const [confirmCourtId, setConfirmCourtId] = useState(null);
-  const [confirmSlotId, setConfirmSlotId] = useState(null);
 
+  // These functions allow the owner to delete their courts or time slots from the database.
+  // After a successful deletion, we 'onRefresh()' the data so the list updates instantly.
   const handleDeleteCourt = async () => {
     try {
       await api.delete(`/futsal/courts/${confirmCourtId}/`);
@@ -42,7 +41,7 @@ export default function OwnerCourts({ courts, onRefresh }) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">My Courts</h2>
         <button
@@ -53,7 +52,7 @@ export default function OwnerCourts({ courts, onRefresh }) {
         </button>
       </div>
 
-      {/* Courts list */}
+
       {courts.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-16 text-center">
           <Home className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -82,7 +81,7 @@ export default function OwnerCourts({ courts, onRefresh }) {
         </div>
       )}
 
-      {/* Modals */}
+
       {showCourtModal && (
         <CourtModal
           court={editingCourt}
@@ -107,7 +106,7 @@ export default function OwnerCourts({ courts, onRefresh }) {
         />
       )}
 
-      {/* Confirm delete court */}
+
       {confirmCourtId && (
         <ConfirmDialog
           title="Delete Court"
@@ -117,7 +116,7 @@ export default function OwnerCourts({ courts, onRefresh }) {
         />
       )}
 
-      {/* Confirm delete slot */}
+
       {confirmSlotId && (
         <ConfirmDialog
           title="Delete Time Slot"

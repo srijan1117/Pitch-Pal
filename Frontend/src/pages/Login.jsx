@@ -8,8 +8,10 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // Eye toggle state
 
+
+  // This effect runs when the page loads. If the user is already logged in, 
+  // we automatically send them to their dashboard so they don't have to log in again.
   useEffect(() => {
     if (!isSessionExpired() && localStorage.getItem("access_token")) {
       const role = localStorage.getItem("role");
@@ -55,7 +57,7 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen bg-white font-sans">
-      {/* LEFT SIDE: Visual Branding */}
+
       <div className="hidden lg:flex lg:w-1/2 relative bg-green-900 items-center justify-center p-12 overflow-hidden">
         <div 
           className="absolute inset-0 z-0 opacity-50 bg-cover bg-center" 
@@ -69,7 +71,7 @@ export default function Login() {
         </div>
       </div>
 
-      {/* RIGHT SIDE: Login Form */}
+
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 md:p-16">
         <div className="w-full max-w-md">
           <div className="flex flex-col items-start mb-8">
@@ -87,7 +89,7 @@ export default function Login() {
           )}
 
           <form onSubmit={onSubmit} className="space-y-5">
-            {/* Email Field */}
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Email address
@@ -103,7 +105,7 @@ export default function Login() {
               />
             </div>
 
-            {/* Password Field with Eye Button */}
+
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
               <div className="relative">

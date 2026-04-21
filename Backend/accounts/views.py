@@ -17,7 +17,6 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]     
 
     @swagger_auto_schema(
-        operation_description="Register a new user.",
         request_body=UserRegistrationSerializer,
         responses={
             201: openapi.Response(
@@ -61,7 +60,6 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
 
     @swagger_auto_schema(
-        operation_description="Login a user.",
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -181,12 +179,11 @@ class ProfileResponseAPI(generics.RetrieveAPIView):
             raise NotFound("Profile not found for this user.")
 
     @swagger_auto_schema(
-        operation_description="Retrieve profile data of currently logged in user.",
         responses={
             200: openapi.Response("Successfully retrieved profile data.", ProfileSerializer),
             401: "Unauthorized - JWT token missing or invalid.",
             403: "Forbidden",
-            404: "Emotion not found.",
+            404: "Profile not found.",
             500: "Internal server error.",
         },
         tags=["User"]

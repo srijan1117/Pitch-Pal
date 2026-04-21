@@ -21,6 +21,8 @@ export default function FutsalDetail() {
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedSlot, setSelectedSlot] = useState("");
+  
+  // These states manage whether the user wants to book weekly, or if they are in the middle of a booking.
   const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [booking, setBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState("");
@@ -28,7 +30,7 @@ export default function FutsalDetail() {
   const [payingBooking, setPayingBooking] = useState(null);
   const [viewerIndex, setViewerIndex] = useState(null);
 
-  // Review states
+
   const [completedBooking, setCompletedBooking] = useState(null);
   const [alreadyReviewed, setAlreadyReviewed] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
@@ -38,7 +40,7 @@ export default function FutsalDetail() {
   const [reviewSuccess, setReviewSuccess] = useState("");
   const [reviewError, setReviewError] = useState("");
 
-  // ── Auto-scroll to review if hash present ───────────────────────────────
+
   useEffect(() => {
     if (location.hash === "#review" && reviewRef.current && !loading) {
       setTimeout(() => {
@@ -47,6 +49,7 @@ export default function FutsalDetail() {
     }
   }, [location.hash, loading]);
 
+  // We generate a list of the next 7 days for the date picker so users can book for a week ahead.
   const days = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
@@ -61,7 +64,7 @@ export default function FutsalDetail() {
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  // ── Fetch court details ───────────────────────────────────────────────
+
   useEffect(() => {
     const fetchCourt = async () => {
       setLoading(true);
@@ -80,15 +83,16 @@ export default function FutsalDetail() {
     fetchCourt();
   }, [id]);
 
-  // ── Fetch available slots when date changes ───────────────────────────
+
   useEffect(() => {
     if (!id) return;
+    // Every time the user clicks a different date, we fetch the slots again to see what's available.
     api.get(`/futsal/courts/${id}/slots/`, { params: { date: formatDate(selectedDate) } })
       .then(res => { setSlots(res.data?.Result || []); setSelectedSlot(""); })
       .catch(() => setSlots([]));
   }, [id, selectedDate]);
 
-  // ── Fetch reviews ─────────────────────────────────────────────────────
+
   const fetchReviews = () => {
     if (!id) return;
     api.get(`/futsal/courts/${id}/reviews/`)
@@ -98,7 +102,7 @@ export default function FutsalDetail() {
 
   useEffect(() => { fetchReviews(); }, [id]);
 
-  // ── Check if user has completed booking for this court ────────────────
+
   useEffect(() => {
     if (!isLoggedIn() || !id) return;
     
@@ -135,8 +139,9 @@ export default function FutsalDetail() {
     checkStatus();
   }, [id]);
 
-  // ── Handle booking ────────────────────────────────────────────────────
+
   const handleBooking = async () => {
+    // Before booking, we check if the user is logged in. If not, we send them to login.
     if (!isLoggedIn()) { navigate("/login"); return; }
     if (!selectedSlot) { setBookingError("Please select a time slot."); return; }
 
@@ -197,7 +202,7 @@ export default function FutsalDetail() {
     }
   };
 
-  // ── Handle review submit ──────────────────────────────────────────────
+
   const handleReviewSubmit = async () => {
     if (!reviewRating) { setReviewError("Please select a star rating."); return; }
     if (!completedBooking) return;
@@ -267,7 +272,7 @@ export default function FutsalDetail() {
         <main className="flex-1">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-            {/* IMAGE GALLERY */}
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
               <div className="md:col-span-3">
                 <div 
@@ -310,7 +315,7 @@ export default function FutsalDetail() {
               </div>
             </div>
 
-            {/* COURT INFO */}
+
             <div className="flex flex-col lg:flex-row justify-between gap-6 mb-8">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{court.name}</h1>
@@ -344,12 +349,12 @@ export default function FutsalDetail() {
               </div>
             </div>
 
-            {/* DESCRIPTION */}
+
             {court.description && (
               <p className="text-gray-600 max-w-3xl mb-10">{court.description}</p>
             )}
 
-            {/* AMENITIES */}
+
             {court.amenities?.length > 0 && (
               <div className="mb-10">
                 <h2 className="text-xl font-semibold mb-3">Facilities & Features</h2>
@@ -361,11 +366,11 @@ export default function FutsalDetail() {
               </div>
             )}
 
-            {/* BOOKING SECTION */}
+
             <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-10">
               <h2 className="text-xl font-semibold mb-6">Book This Court</h2>
 
-              {/* DATE SELECTOR */}
+
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Calendar className="w-5 h-5 text-green-600" />
@@ -388,7 +393,7 @@ export default function FutsalDetail() {
                 </div>
               </div>
 
-              {/* TIME SLOT SELECTOR */}
+
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Clock className="w-5 h-5 text-green-600" />
@@ -430,7 +435,7 @@ export default function FutsalDetail() {
                 )}
               </div>
 
-              {/* WEEKLY BOOKING */}
+
               <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
                 <h3 className="text-base font-semibold mb-1">Book Throughout the Week</h3>
                 <p className="text-gray-500 text-sm mb-3">Reserve the same slot every week.</p>
@@ -456,13 +461,13 @@ export default function FutsalDetail() {
               </button>
             </div>
 
-            {/* REVIEWS SECTION */}
+
             <div className="mb-10">
               <h2 ref={reviewRef} className="text-xl font-semibold mb-4">
                 Reviews {reviews.length > 0 && `(${reviews.length})`}
               </h2>
 
-              {/* REVIEW FORM — only for users with completed bookings */}
+
               {isLoggedIn() && completedBooking && !alreadyReviewed && (
                 <div className="bg-white rounded-xl border border-green-200 p-6 mb-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">Leave a Review</h3>
@@ -521,7 +526,7 @@ export default function FutsalDetail() {
                 </div>
               )}
 
-              {/* REVIEWS LIST */}
+
               {reviews.length === 0 ? (
                 <p className="text-gray-500 text-sm">No reviews yet for this court.</p>
               ) : (
@@ -544,14 +549,14 @@ export default function FutsalDetail() {
               )}
             </div>
 
-            {/* FEATURED COURTS */}
+
             <div className="mt-16">
               <FeaturedFutsals excludeId={parseInt(id)} />
             </div>
           </div>
         </main>
 
-        {/* eSewa Payment Modal */}
+
         {payingBooking && (
           <EsewaPaymentModal
             booking={!payingBooking.start_date ? payingBooking : null}
@@ -563,7 +568,7 @@ export default function FutsalDetail() {
           />
         )}
 
-        {/* IMAGE LIGHTBOX */}
+
         {viewerIndex !== null && (
           <div className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 backdrop-blur-sm">
             <button 

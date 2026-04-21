@@ -70,7 +70,7 @@ function BookingList({ bookings, type, onCancel }) {
           className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden group"
         >
           <div className="flex flex-col lg:flex-row gap-0">
-            {/* Image Section */}
+
             <div className="w-full lg:w-72 shrink-0 relative overflow-hidden bg-gray-100">
               {booking.court_image ? (
                 <img
@@ -88,10 +88,10 @@ function BookingList({ bookings, type, onCancel }) {
               </div>
             </div>
 
-            {/* Content Section */}
+
             <div className="flex-1 p-6 sm:p-8">
               <div className="flex flex-col md:flex-row justify-between gap-6 h-full">
-                {/* Details */}
+
                 <div className="flex-1 space-y-4">
                   <div>
                     <h3 className="text-2xl font-bold text-gray-900 group-hover:text-green-700 transition-colors">
@@ -129,7 +129,7 @@ function BookingList({ bookings, type, onCancel }) {
                   </div>
                 </div>
 
-                {/* Actions Panel */}
+
                 <div className="w-full md:w-52 flex flex-col justify-center gap-3 border-t md:border-t-0 md:border-l border-gray-100 pt-6 md:pt-0 md:pl-6">
                   {type === "history" && booking.status === "completed" && !booking.isTournament && (
                     <Link
@@ -191,7 +191,9 @@ export default function Bookings() {
       const courtsData = courtsRes.data?.Result || [];
       const tourneysData = tourneysRes.data?.Result || [];
 
-      // Enrich bookings with court image and address
+      // Enrich bookings with court image and address.
+      // The basic booking data from the backend only has IDs, so we look up the 
+      // Full details (like image and address) from our courts list.
       const enrichedBookings = bookingsData.map(booking => {
         const court = courtsData.find(c => c.id === booking.court);
         return {
@@ -203,6 +205,8 @@ export default function Bookings() {
         };
       });
 
+      // Since Tournaments are different from regular bookings, we 'normalize' them.
+      // This means we make them look like regular bookings so they can both be shown in the same list.
       const normalizedTourneys = tourneysData.map(reg => {
         const d = reg.tournament_detail;
         return {
@@ -279,6 +283,7 @@ export default function Bookings() {
     }
   };
 
+  // This helper function checks the current date and time to see if a booking is finished.
   const isPast = (booking) => {
     if (!booking.booking_date) return false;
     const now = new Date();
@@ -303,7 +308,7 @@ export default function Bookings() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
       <main className="flex-grow w-full">
-        {/* Header */}
+
         <div className="bg-white border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
             <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
@@ -316,7 +321,7 @@ export default function Bookings() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          {/* Tabs */}
+
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
             <div className="bg-gray-100 p-1.5 rounded-2xl inline-flex shadow-inner">
               <button
@@ -384,7 +389,7 @@ export default function Bookings() {
             isCancelling={cancellingId !== null}
           />
 
-          {/* Recommended Courts */}
+
           <div className="mt-24 border-t border-gray-200 pt-16">
             <div className="flex items-end justify-between mb-10">
               <div>

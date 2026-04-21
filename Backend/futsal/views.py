@@ -36,12 +36,13 @@ import hmac
 import hashlib
 import base64
 
-# eSewa v2 endpoints (Sandbox)
 ESEWA_INITIATE_URL = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
 ESEWA_STATUS_URL = "https://rc-epay.esewa.com.np/api/epay/transaction/status/"
 
 def generate_esewa_signature(secret_key, message):
-    """Generates a Base64-encoded HMAC-SHA256 signature for eSewa v2."""
+    # This function creates a unique digital signature for eSewa using HMAC-SHA256.
+    # We combine the secret key and the message, hash them, and then convert to Base64 
+    # so eSewa can verify the request came from our system.
     key = secret_key.encode('utf-8')
     msg = message.encode('utf-8')
     hmac_sha256 = hmac.new(key, msg, hashlib.sha256)
@@ -57,7 +58,7 @@ def parse_amount(amount):
     try: return float(clean_str)
     except: return 0
 
-# ── COURTS ──────────────────────────────────────────────────────────────────
+
 
 class CourtListView(generics.ListAPIView):
     """List all active futsal courts."""
@@ -149,7 +150,7 @@ class CourtImageUploadView(APIView):
         except CourtImage.DoesNotExist:
             return api_response(is_success=False, error_message="Image not found or not authorized", status_code=status.HTTP_404_NOT_FOUND)
 
-# ── TIME SLOTS ──────────────────────────────────────────────────────────────
+
 
 class CourtTimeSlotsView(APIView):
     """Public: View all slots for a specific court, marked if booked for a specific date."""
@@ -159,23 +160,20 @@ class CourtTimeSlotsView(APIView):
     def get(self, request, court_id):
         booking_date_str = request.query_params.get('date')
         
-        # Base slots for the court
         slots = TimeSlot.objects.filter(court_id=court_id).order_by('start_time')
         
-        booked_slot_ids = []
+        # We need to find out which slots are already taken so the user can't book them again.
         if booking_date_str:
             try:
                 from datetime import datetime
                 booking_date = datetime.strptime(booking_date_str, '%Y-%m-%d').date()
                 
-                # 1. Confirmed or Played single bookings
                 confirmed_bookings = Booking.objects.filter(
                     court_id=court_id,
                     booking_date=booking_date,
                     status__in=[BookingStatusEnum.CONFIRMED, BookingStatusEnum.COMPLETED]
                 )
                 
-                # 2. Pending bookings created in the last 5 minutes (temporary lock)
                 from datetime import timedelta
                 lock_time = timezone.now() - timedelta(minutes=5)
                 
@@ -186,8 +184,6 @@ class CourtTimeSlotsView(APIView):
                     created_at__gte=lock_time
                 )
                 
-                # 3. Active Weekly Bookings for this weekday
-                # Filter by status CONFIRMED and is_active=True
                 weekly_bookings = WeeklyBooking.objects.filter(
                     court_id=court_id,
                     status=BookingStatusEnum.CONFIRMED,
@@ -207,7 +203,8 @@ class CourtTimeSlotsView(APIView):
                 booked_slot_ids = list(confirmed_bookings.values_list('time_slot_id', flat=True))
                 pending_slot_ids = list(pending_bookings.values_list('time_slot_id', flat=True))
                 
-                # Combine all to show as "unavailable" in the UI
+                # We combine confirmed bookings, pending ones that haven't expired, and weekly recurring matches
+                # to show a master list of "unavailable" slots to the frontend.
                 booked_slot_ids = list(set(booked_slot_ids + pending_slot_ids + matching_weekly_slot_ids))
                 
             except Exception as e:
@@ -243,7 +240,7 @@ class TimeSlotDetailView(generics.RetrieveUpdateDestroyAPIView):
     lookup_url_kwarg = 'slot_id'
     swagger_tags = ['Time Slots']
 
-# ── BOOKINGS ────────────────────────────────────────────────────────────────
+
 
 class BookingCreateView(APIView):
     """User: Create a new booking."""
@@ -266,9 +263,7 @@ class UserBookingListView(generics.ListAPIView):
         user = self.request.user
         now = timezone.now()
         
-        # ✅ Auto-complete past confirmed bookings
-        # 1. Bookings before today
-        # 2. Today's bookings where end_time has passed
+        # Auto-complete past confirmed bookings
         Booking.objects.filter(
             user=user,
             status=BookingStatusEnum.CONFIRMED,
@@ -299,7 +294,7 @@ class BookingCancelView(APIView):
             if booking.status in [BookingStatusEnum.CANCELLED, BookingStatusEnum.COMPLETED]:
                 return api_response(is_success=False, error_message="Cannot cancel this booking", status_code=status.HTTP_400_BAD_REQUEST)
             
-            # ✅ Business Rule: Cannot cancel within 6 hours of the game
+            # Cannot cancel within 6 hours of the game
             from datetime import datetime
             from django.utils import timezone
             
@@ -332,7 +327,7 @@ class OwnerBookingListView(APIView):
         courts = FutsalCourt.objects.filter(owner=request.user)
         now = timezone.now()
 
-        # ✅ Auto-complete past confirmed bookings for owner as well
+        # Auto-complete past confirmed bookings
         Booking.objects.filter(
             court__in=courts,
             status=BookingStatusEnum.CONFIRMED,
@@ -365,7 +360,7 @@ class WalkinBookingView(APIView):
             )
         return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
 
-# ── WEEKLY BOOKINGS ─────────────────────────────────────────────────────────
+
 
 class WeeklyBookingCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -407,7 +402,7 @@ class WeeklyBookingCancelView(APIView):
         except WeeklyBooking.DoesNotExist:
             return api_response(is_success=False, error_message="Weekly booking not found", status_code=status.HTTP_404_NOT_FOUND)
 
-# ── TOURNAMENTS ─────────────────────────────────────────────────────────────
+
 
 class TournamentListView(generics.ListAPIView):
     queryset = Tournament.objects.all().order_by('-created_at')
@@ -421,6 +416,8 @@ class TournamentListView(generics.ListAPIView):
         now_dt = timezone.now()
 
         # ✅ Auto-update states based on dates
+        # This part automatically moves tournaments between 'Upcoming', 'Ongoing', and 'History'
+        # states based on today's date so the owner doesn't have to do it manually.
         # 1. Upcoming -> Ongoing
         queryset.filter(
             state=TournamentStateEnum.UPCOMING,
@@ -636,7 +633,7 @@ class OwnerTournamentListView(generics.ListAPIView):
         serializer = self.get_serializer(queryset, many=True, context={'request': request})
         return api_response(is_success=True, result=serializer.data, status_code=status.HTTP_200_OK)
 
-# ── REVIEWS ─────────────────────────────────────────────────────────────────
+
 
 class ReviewCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -669,7 +666,7 @@ class CourtReviewListView(generics.ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return api_response(is_success=True, result={"reviews": serializer.data}, status_code=status.HTTP_200_OK)
 
-# ── ESEWA PAYMENT ───────────────────────────────────────────────────────────
+
 
 class EsewaInitiateView(APIView):
     authentication_classes = [JWTAuthentication]
@@ -721,7 +718,8 @@ class EsewaInitiateView(APIView):
         except Exception as e:
             return api_response(is_success=False, error_message=f"Setup error: {str(e)}", status_code=status.HTTP_400_BAD_REQUEST)
 
-        # Fix for ES104: Use one decimal place and DO NOT include signed_field_names in the initiation string
+        # We format the amount as a string with one decimal (e.g., 500.0) as required by eSewa v2.
+        # Then we create a message string to sign, ensuring it matches eSewa's expected format exactly.
         amount_val = float(amount)
         amount_str = "{:.1f}".format(amount_val)
 
@@ -768,7 +766,8 @@ class EsewaVerifyView(APIView):
             total_amount = decoded_data.get('total_amount')
             signature = decoded_data.get('signature')
 
-            # Verify Signature back
+            # Security Check: We recalculate the signature from the data eSewa sent back.
+            # If our calculated signature matches the one eSewa sent, we know the data is genuine.
             # signed_field_names: transaction_code,status,total_amount,transaction_uuid,product_code,signed_field_names
             message = f"transaction_code={decoded_data.get('transaction_code')},status={status_str},total_amount={total_amount},transaction_uuid={transaction_uuid},product_code={decoded_data.get('product_code')},signed_field_names={decoded_data.get('signed_field_names')}"
             expected_signature = generate_esewa_signature(settings.ESEWA_SECRET_KEY, message)
@@ -780,7 +779,8 @@ class EsewaVerifyView(APIView):
             if status_str != 'COMPLETE':
                 return api_response(is_success=False, error_message=f"Payment status: {status_str}", status_code=status.HTTP_400_BAD_REQUEST)
 
-            # transaction_uuid format: PREFIX_ID_TIMESTAMP
+            # Our transaction UUID looks like "BK_12_1713500000" (Prefix_ID_Timestamp).
+            # We split it to find out if it was a regular Booking, Tournament, or Weekly payment.
             parts = transaction_uuid.split("_")
             if len(parts) < 2:
                 return api_response(is_success=False, error_message="Invalid transaction UUID format.", status_code=status.HTTP_400_BAD_REQUEST)

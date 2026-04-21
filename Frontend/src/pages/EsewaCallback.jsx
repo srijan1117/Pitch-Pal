@@ -8,10 +8,13 @@ export default function EsewaCallback() {
   const navigate = useNavigate();
   const [status, setStatus] = useState("verifying"); // verifying, success, error
   const [message, setMessage] = useState("Verifying your payment with eSewa...");
+  
+  // We use this 'ref' to make sure the verification only runs ONCE.
+  // Sometimes React renders twice, but we don't want to call the API twice.
   const verifyAttempted = useRef(false);
 
   useEffect(() => {
-    // eSewa redirects with a ?data=... parameter
+
     const data = searchParams.get("data");
 
     if (verifyAttempted.current) return;
@@ -33,7 +36,7 @@ export default function EsewaCallback() {
         if (isSuccess) {
           setStatus("success");
           setMessage(resData?.message || "Payment verified successfully!");
-          // Redirect after 3 seconds
+
           setTimeout(() => {
             navigate("/bookings");
           }, 3000);

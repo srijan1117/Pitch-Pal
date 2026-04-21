@@ -9,6 +9,8 @@ export function FeaturedFutsals({ excludeId, title = "Featured Futsal", limit = 
     api.get("/futsal/courts/")
       .then(res => {
         const data = res.data?.Result || [];
+        // We filter out the 'excludeId' so we don't recommend the same court 
+        // the user is currently looking at. We also limit the results to show only a few.
         const filtered = data.filter(c => c.id !== excludeId).slice(0, limit);
         setCourts(filtered);
       })

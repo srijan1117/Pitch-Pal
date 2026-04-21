@@ -26,7 +26,7 @@ export default function DashboardCharts({ bookings }) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      {/* Revenue Trend */}
+
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm col-span-1 lg:col-span-2">
         <h3 className="text-lg font-bold text-gray-800 mb-6">Revenue Trend (Last 30 Days)</h3>
         <div className="h-80 w-full">
@@ -73,7 +73,7 @@ export default function DashboardCharts({ bookings }) {
         </div>
       </div>
 
-      {/* Booking Distribution */}
+
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <h3 className="text-lg font-bold text-gray-800 mb-6">Booking Status</h3>
         <div className="h-64 w-full">
@@ -105,7 +105,7 @@ export default function DashboardCharts({ bookings }) {
         </div>
       </div>
 
-      {/* Court Popularity */}
+
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <h3 className="text-lg font-bold text-gray-800 mb-6">Court Popularity</h3>
         <div className="h-64 w-full">

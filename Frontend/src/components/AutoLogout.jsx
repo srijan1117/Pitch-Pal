@@ -6,6 +6,9 @@ export default function AutoLogout() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // This background timer runs every 30 seconds.
+    // It automatically checks if the user's session has expired, and if it has, 
+    // it logs them out immediately to keep the app secure.
     const interval = setInterval(() => {
       if (isLoggedIn() && isSessionExpired()) {
         clearInterval(interval);

@@ -14,6 +14,9 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/login" replace />;
   }
 
+  // This component acts like a "Gatekeeper". 
+  // It checks if the user is still logged in and if their Role (User, Owner, Admin) 
+  // is allowed to see the page they are trying to open.
   if (allowedRoles && !allowedRoles.map(r => r.toLowerCase()).includes(userRole)) {
     return <Navigate to="/home" replace />;
   }

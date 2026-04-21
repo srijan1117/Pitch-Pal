@@ -18,14 +18,14 @@ export default function App() {
     <Router>
       <AutoLogout />
       <Routes>
-        {/* Auth routes — NO navbar */}
+
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/esewa-callback" element={<EsewaCallback />} />
-        {/* Legacy redirects */}
+
         <Route path="/" element={<Navigate to="/home" replace />} />
 
-        {/* Public + User routes — WITH navbar */}
+
         <Route element={<MainLayout />}>
           <Route path="/home" element={<Home />} />
           <Route path="/browse" element={<BrowseFutsal />} />
@@ -34,7 +34,7 @@ export default function App() {
           <Route path="/tournaments/:id" element={<TournamentDetail />} />
           <Route path="/esewa-callback" element={<EsewaCallback />} />
 
-          {/* Bookings — requires login */}
+
           <Route
             path="/bookings"
             element={
@@ -45,7 +45,7 @@ export default function App() {
           />
         </Route>
 
-        {/* Owner Dashboard — NO global navbar, own layout */}
+
         <Route
           path="/owner/*"
           element={
