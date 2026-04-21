@@ -17,6 +17,8 @@ export default function SlotModal({ court, onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
+      // Each time slot can have its own price. If the owner doesn't set one, 
+      // the system will just use the default price of the court.
       await api.post(`/futsal/courts/${court.id}/slots/create/`, {
         start_time: form.start_time,
         end_time: form.end_time,

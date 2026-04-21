@@ -19,6 +19,8 @@ export default function CourtModal({ court = null, onClose, onSuccess }) {
     setLoading(true);
     setError("");
     try {
+      // Tech-Tip: We use FormData because we are uploading an image file along with 
+      // the court's name, price, and other details.
       const formData = new FormData();
       formData.append("name", form.name);
       formData.append("address", form.address);

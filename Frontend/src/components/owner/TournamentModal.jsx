@@ -51,6 +51,8 @@ export default function TournamentModal({ tournament = null, onClose, onSuccess 
       return;
     }
 
+    // Date logic: The registration deadline must come before the event starts,
+    // and the start date must always be before the end date.
     const startDate = new Date(form.start_date);
     const endDate = new Date(form.end_date);
     const deadlineDate = new Date(form.registration_deadline);
@@ -80,7 +82,8 @@ export default function TournamentModal({ tournament = null, onClose, onSuccess 
     try {
       const formData = new FormData();
       
-      // Add all text fields to FormData
+      // We use FormData here because the owner may also upload a tournament banner image.
+      // We then check if we are editing (PUT) or creating (POST) a tournament.
       Object.entries(form).forEach(([k, v]) => {
         formData.append(k, v);
       });
@@ -90,10 +93,12 @@ export default function TournamentModal({ tournament = null, onClose, onSuccess 
       }
 
       if (tournament) {
+        // Editing an existing tournament
         await api.put(`/futsal/tournaments/${tournament.id}/update/`, formData, {
           headers: { "Content-Type": "multipart/form-data" }
         });
       } else {
+        // Creating a brand new tournament
         await api.post("/futsal/tournaments/create/", formData, {
           headers: { "Content-Type": "multipart/form-data" }
         });

@@ -53,6 +53,10 @@ export default function TournamentDetail() {
     
     // Validation: We check if the team name, phone number, and player list are correct.
     // For example, a team must have at least 5 players to be valid.
+    const trimmedTeamName = teamName.trim();
+    const phoneRegex = /^(98|97)\d{8}$/;
+    const validPlayers = playerNames.filter(p => p.trim().length > 0);
+
     if (trimmedTeamName.length < 3) {
       setRegError("Team name must be at least 3 characters long.");
       return;

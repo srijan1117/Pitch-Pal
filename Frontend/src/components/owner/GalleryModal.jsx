@@ -40,6 +40,8 @@ export default function GalleryModal({ court, onClose, onSuccess }) {
     }
   };
 
+  // We allow the owner to pick multiple images at once. 
+  // Each court is limited to a maximum of 4 photos to keep the gallery clean.
   const remaining = 4 - (court.gallery?.length || 0);
 
   return (

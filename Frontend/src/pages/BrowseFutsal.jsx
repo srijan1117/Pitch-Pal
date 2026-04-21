@@ -85,8 +85,8 @@ export default function BrowseFutsal() {
             const res = await api.get("/futsal/courts/");
             let data = res.data?.Result || [];
 
-            # Client-side filtering: We filter the results in the browser to make the search fast.
-            # We match the name and location that the user typed in.
+            // Client-side filtering: We filter the results in the browser to make the search fast.
+            // We match the name and location that the user typed in.
             if (filters.search) {
                 const q = filters.search.toLowerCase();
                 data = data.filter(c => c.name.toLowerCase().includes(q));
@@ -96,8 +96,8 @@ export default function BrowseFutsal() {
                 data = data.filter(c => c.address.toLowerCase().includes(q));
             }
 
-            # Client-side sorting: We also sort the courts by price (low to high) 
-            # if the user selects that option in the dropdown.
+            // Client-side sorting: We also sort the courts by price (low to high) 
+            // if the user selects that option in the dropdown.
             if (filters.sort === "price_low") {
                 data.sort((a, b) => parseFloat(a.price_per_hour) - parseFloat(b.price_per_hour));
             } else if (filters.sort === "price_high") {

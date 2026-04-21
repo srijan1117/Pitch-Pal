@@ -15,6 +15,9 @@ export default function OwnerCourts({ courts, onRefresh }) {
   const [selectedCourt, setSelectedCourt] = useState(null);
 
 
+  const [confirmCourtId, setConfirmCourtId] = useState(null);
+  const [confirmSlotId, setConfirmSlotId] = useState(null);
+
   // These functions allow the owner to delete their courts or time slots from the database.
   // After a successful deletion, we 'onRefresh()' the data so the list updates instantly.
   const handleDeleteCourt = async () => {
