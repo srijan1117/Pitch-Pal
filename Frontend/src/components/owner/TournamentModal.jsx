@@ -36,14 +36,43 @@ export default function TournamentModal({ tournament = null, onClose, onSuccess 
     setError("");
     setSubmitted(true);
 
-    // Client-side validation for required fields
+    // Detailed Validation
     const requiredKeys = fields.filter(f => f.label.includes('*')).map(f => f.key);
-    requiredKeys.push('description'); // Also required
+    requiredKeys.push('description');
 
     const isAnyEmpty = requiredKeys.some(key => !form[key] || String(form[key]).trim() === "");
-    
     if (isAnyEmpty) {
       setError("Please fill in all required fields.");
+      return;
+    }
+
+    if (form.title.trim().length < 5) {
+      setError("Tournament title must be at least 5 characters long.");
+      return;
+    }
+
+    const startDate = new Date(form.start_date);
+    const endDate = new Date(form.end_date);
+    const deadlineDate = new Date(form.registration_deadline);
+
+    if (startDate > endDate) {
+      setError("Start date cannot be after the end date.");
+      return;
+    }
+
+    if (deadlineDate >= startDate) {
+      setError("Registration deadline must be before the tournament start date.");
+      return;
+    }
+
+    if (parseInt(form.team_limit) < 4) {
+      setError("Minimum team limit should be at least 4 teams for a valid tournament.");
+      return;
+    }
+
+    const phoneRegex = /^(98|97)\d{8}$/;
+    if (form.contact_phone && !phoneRegex.test(form.contact_phone)) {
+      setError("Please enter a valid 10-digit phone number (98XXXXXXXX).");
       return;
     }
 

@@ -8,6 +8,7 @@ from accounts.models import RoleEnum
 from django.utils import timezone
 from datetime import datetime, date as date_type, timedelta
 from decimal import Decimal
+from django.db.models import Q
 
 
 class TimeSlotSerializer(serializers.ModelSerializer):
@@ -83,13 +84,14 @@ class FutsalCourtCreateSerializer(serializers.ModelSerializer):
 
 class BookingSerializer(serializers.ModelSerializer):
     court_name = serializers.CharField(source='court.name', read_only=True)
+    court_address = serializers.CharField(source='court.address', read_only=True)
     time_slot_detail = TimeSlotSerializer(source='time_slot', read_only=True)
     user_email = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
         fields = [
-            'id', 'user_email', 'court', 'court_name',
+            'id', 'user_email', 'court', 'court_name', 'court_address',
             'time_slot', 'time_slot_detail', 'booking_date',
             'status', 'total_amount', 'customer_name', 'customer_phone', 'created_at'
         ]
@@ -141,6 +143,23 @@ class BookingSerializer(serializers.ModelSerializer):
             
         if existing_pending.exists():
             raise serializers.ValidationError('This slot is currently being booked by another user. Please try again in 5 minutes.')
+
+        # Check for confirmed Weekly Bookings that overlap with this date/slot
+        weekday = booking_date.weekday()
+        weekly_conflict = WeeklyBooking.objects.filter(
+            court=court,
+            time_slot=time_slot,
+            status=BookingStatusEnum.CONFIRMED,
+            is_active=True,
+            start_date__lte=booking_date
+        ).filter(
+            Q(end_date__isnull=True) | Q(end_date__gte=booking_date)
+        )
+        
+        # Filter for the same weekday
+        # Using list comprehension since __weekday might not be reliable across all DBs without extra config
+        if any(wb.start_date.weekday() == weekday for wb in weekly_conflict):
+            raise serializers.ValidationError('This slot is part of a recurring weekly booking.')
 
         return data
 
@@ -216,9 +235,24 @@ class WalkinBookingSerializer(serializers.ModelSerializer):
             status=BookingStatusEnum.PENDING,
             created_at__gte=lock_time
         )
-
+        
         if existing_pending.exists():
             raise serializers.ValidationError('This slot is currently being booked by another user online. Please try again in 5 minutes.')
+
+        # Check for Weekly Booking conflict
+        weekday = booking_date.weekday()
+        weekly_conflict = WeeklyBooking.objects.filter(
+            court=court,
+            time_slot=time_slot,
+            status=BookingStatusEnum.CONFIRMED,
+            is_active=True,
+            start_date__lte=booking_date
+        ).filter(
+            Q(end_date__isnull=True) | Q(end_date__gte=booking_date)
+        )
+
+        if any(wb.start_date.weekday() == weekday for wb in weekly_conflict):
+            raise serializers.ValidationError('This slot is occupied by a recurring weekly booking.')
 
         return data
 
@@ -288,12 +322,13 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class WeeklyBookingSerializer(serializers.ModelSerializer):
     court_name = serializers.CharField(source='court.name', read_only=True)
+    court_address = serializers.CharField(source='court.address', read_only=True)
     time_slot_detail = TimeSlotSerializer(source='time_slot', read_only=True)
     user_email = serializers.EmailField(source='user.email', read_only=True)
 
     class Meta:
         model = WeeklyBooking
-        fields = ['id', 'user_email', 'court', 'court_name', 'time_slot', 'time_slot_detail', 'start_date', 'end_date', 'status', 'is_active', 'created_at']
+        fields = ['id', 'user_email', 'court', 'court_name', 'court_address', 'time_slot', 'time_slot_detail', 'start_date', 'end_date', 'status', 'is_active', 'created_at']
         read_only_fields = ['user_email', 'court_name', 'status', 'created_at']
 
     def validate(self, data):
@@ -316,36 +351,7 @@ class WeeklyBookingSerializer(serializers.ModelSerializer):
         return WeeklyBooking.objects.create(user=user, status=BookingStatusEnum.PENDING, **validated_data)
 
 
-class KhaltiInitSerializer(serializers.Serializer):
-    booking_id = serializers.IntegerField(required=False, allow_null=True)
-    registration_id = serializers.IntegerField(required=False, allow_null=True)
-    weekly_booking_id = serializers.IntegerField(required=False, allow_null=True)
 
-    def validate(self, data):
-        booking_id = data.get('booking_id')
-        registration_id = data.get('registration_id')
-        weekly_booking_id = data.get('weekly_booking_id')
-
-        count = sum(1 for x in [booking_id, registration_id, weekly_booking_id] if x is not None)
-        if count == 0:
-            raise serializers.ValidationError('One of booking_id, registration_id, or weekly_booking_id must be provided.')
-        if count > 1:
-            raise serializers.ValidationError('Provide only one of: booking_id, registration_id, or weekly_booking_id.')
-
-        return data
-
-
-class KhaltiVerifySerializer(serializers.Serializer):
-    pidx = serializers.CharField()
-    booking_id = serializers.IntegerField(required=False, allow_null=True)
-    registration_id = serializers.IntegerField(required=False, allow_null=True)
-    weekly_booking_id = serializers.IntegerField(required=False, allow_null=True)
-
-    def validate(self, data):
-        count = sum(1 for x in [data.get('booking_id'), data.get('registration_id'), data.get('weekly_booking_id')] if x is not None)
-        if count == 0:
-            raise serializers.ValidationError('One of booking_id, registration_id, or weekly_booking_id must be provided.')
-        return data
 
 
 class TournamentSerializer(serializers.ModelSerializer):

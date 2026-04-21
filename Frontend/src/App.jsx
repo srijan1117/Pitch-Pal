@@ -11,7 +11,7 @@ import Tournaments from "./pages/Tournaments";
 import TournamentDetail from "./pages/TournamentDetail";
 import OwnerDashboard from "./pages/owner/OwnerDashboard";
 import AutoLogout from "./components/AutoLogout";
-import KhaltiCallback from "./pages/KhaltiCallback";
+import EsewaCallback from "./pages/EsewaCallback";
 
 export default function App() {
   return (
@@ -21,7 +21,7 @@ export default function App() {
         {/* Auth routes — NO navbar */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/khalti-callback" element={<KhaltiCallback />} />
+        <Route path="/esewa-callback" element={<EsewaCallback />} />
         {/* Legacy redirects */}
         <Route path="/" element={<Navigate to="/home" replace />} />
 
@@ -32,7 +32,7 @@ export default function App() {
           <Route path="/browse/:id" element={<FutsalDetail />} />
           <Route path="/tournaments" element={<Tournaments />} />
           <Route path="/tournaments/:id" element={<TournamentDetail />} />
-          <Route path="/khalti-callback" element={<KhaltiCallback />} />
+          <Route path="/esewa-callback" element={<EsewaCallback />} />
 
           {/* Bookings — requires login */}
           <Route

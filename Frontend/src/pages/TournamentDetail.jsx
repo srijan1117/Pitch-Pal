@@ -1,9 +1,9 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Trophy, Calendar, MapPin, Users, ArrowLeft, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Trophy, Calendar, MapPin, Users, ArrowLeft, CheckCircle2, AlertCircle, Clock, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import api from "../api/axios";
 import { isLoggedIn } from "../api/auth";
-import KhaltiPaymentModal from "../components/KhaltiPaymentModal";
+import EsewaPaymentModal from "../components/EsewaPaymentModal";
 
 export default function TournamentDetail() {
   const { id } = useParams();
@@ -35,9 +35,39 @@ export default function TournamentDetail() {
     setPlayerNames(updated);
   };
 
+  const addPlayerSlot = () => {
+    if (playerNames.length < 15) {
+      setPlayerNames([...playerNames, ""]);
+    }
+  };
+
+  const removePlayerSlot = (index) => {
+    if (playerNames.length > 1) {
+      const updated = playerNames.filter((_, i) => i !== index);
+      setPlayerNames(updated);
+    }
+  };
+
   const handleRegister = async () => {
     if (!isLoggedIn()) { navigate("/login"); return; }
-    if (!teamName || !contactPhone) { setRegError("Team name and contact phone are required."); return; }
+    
+    // Validation
+    const trimmedTeamName = teamName.trim();
+    const phoneRegex = /^(98|97)\d{8}$/;
+    const validPlayers = playerNames.filter(p => p.trim().length > 0);
+
+    if (trimmedTeamName.length < 3) {
+      setRegError("Team name must be at least 3 characters long.");
+      return;
+    }
+    if (!phoneRegex.test(contactPhone)) {
+      setRegError("Please enter a valid 10-digit phone number (98XXXXXXXX or 97XXXXXXXX).");
+      return;
+    }
+    if (validPlayers.length < 5) {
+      setRegError("Please enter names for at least 5 players.");
+      return;
+    }
 
     setRegistering(true);
     setRegError("");
@@ -46,9 +76,9 @@ export default function TournamentDetail() {
     try {
       const res = await api.post("/futsal/tournaments/register/", {
         tournament: parseInt(id),
-        team_name: teamName,
+        team_name: trimmedTeamName,
         contact_phone: contactPhone,
-        player_names: playerNames.filter(p => p.trim() !== ""),
+        player_names: validPlayers,
       });
       setRegSuccess("Registration successful! Redirecting to payment...");
       setPayingRegistration(res.data?.Result);
@@ -272,12 +302,33 @@ export default function TournamentDetail() {
                   placeholder="98XXXXXXXX" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Player Names</label>
-                {playerNames.map((name, i) => (
-                  <input key={i} value={name} onChange={e => handlePlayerChange(i, e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none mb-2"
-                    placeholder={`Player ${i + 1}`} />
-                ))}
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Player Names</label>
+                  <button 
+                    type="button"
+                    onClick={addPlayerSlot}
+                    className="text-xs font-bold text-green-600 hover:text-green-700 bg-green-50 px-2 py-1 rounded-lg transition-colors"
+                  >
+                    + Add Player
+                  </button>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                  {playerNames.map((name, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input value={name} onChange={e => handlePlayerChange(i, e.target.value)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-sm"
+                        placeholder={`Player ${i + 1}`} />
+                      {playerNames.length > 5 && (
+                        <button 
+                          onClick={() => removePlayerSlot(i)}
+                          className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -297,9 +348,9 @@ export default function TournamentDetail() {
         </div>
       )}
 
-      {/* Khalti Payment Modal */}
+      {/* eSewa Payment Modal */}
       {payingRegistration && (
-        <KhaltiPaymentModal
+        <EsewaPaymentModal
           registration={payingRegistration}
           onClose={() => setPayingRegistration(null)}
         />

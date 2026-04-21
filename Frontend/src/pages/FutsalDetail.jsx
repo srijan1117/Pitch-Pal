@@ -5,7 +5,7 @@ import { Star, MapPin, Clock, Calendar, ChevronLeft, ChevronRight, X } from "luc
 import { useEffect, useState, useRef } from "react";
 import api from "../api/axios";
 import { isLoggedIn } from "../api/auth";
-import KhaltiPaymentModal from "../components/KhaltiPaymentModal";
+import EsewaPaymentModal from "../components/EsewaPaymentModal";
 
 export default function FutsalDetail() {
   const navigate = useNavigate();
@@ -551,9 +551,9 @@ export default function FutsalDetail() {
           </div>
         </main>
 
-        {/* Khalti Payment Modal */}
+        {/* eSewa Payment Modal */}
         {payingBooking && (
-          <KhaltiPaymentModal
+          <EsewaPaymentModal
             booking={!payingBooking.start_date ? payingBooking : null}
             weeklyBooking={payingBooking.start_date ? payingBooking : null}
             onClose={() => {

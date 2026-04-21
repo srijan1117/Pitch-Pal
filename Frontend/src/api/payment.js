@@ -1,28 +1,13 @@
 import api from "./axios";
 
-export const initiateKhaltiPayment = async (bookingId) => {
-  const response = await api.post("/futsal/payment/khalti/initiate/", {
-    booking_id: bookingId,
-  });
+export const initiateEsewaPayment = async (params) => {
+  // params should have booking_id, registration_id, or weekly_booking_id
+  const response = await api.post("/futsal/payment/esewa/initiate/", params);
   return response.data;
 };
 
-export const initiateWeeklyPayment = async (weeklyBookingId) => {
-  const response = await api.post("/futsal/payment/khalti/initiate/", {
-    weekly_booking_id: weeklyBookingId,
-  });
-  return response.data;
-};
-
-export const initiateTournamentPayment = async (registrationId) => {
-  const response = await api.post("/futsal/payment/khalti/initiate/", {
-    registration_id: registrationId,
-  });
-  return response.data;
-};
-
-export const verifyKhaltiPayment = async (params) => {
-  // params should contain pidx and either booking_id or registration_id
-  const response = await api.post("/futsal/payment/khalti/verify/", params);
+export const verifyEsewaPayment = async (data) => {
+  // data is the base64 encoded string from eSewa redirect
+  const response = await api.post("/futsal/payment/esewa/verify/", { data });
   return response.data;
 };

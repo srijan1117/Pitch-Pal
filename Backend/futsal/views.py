@@ -1,7 +1,10 @@
-import requests
 from django.utils import timezone
 from django.conf import settings
 from django.db.models import Count, Avg, Q
+from decimal import Decimal
+import hmac
+import hashlib
+import base64
 
 from rest_framework.views import APIView
 from rest_framework import generics, status
@@ -21,7 +24,6 @@ from futsal.models import (
 from futsal.serializers import (
     FutsalCourtSerializer, FutsalCourtCreateSerializer,
     TimeSlotSerializer, BookingSerializer,
-    KhaltiInitSerializer, KhaltiVerifySerializer,
     WalkinBookingSerializer, ReviewSerializer,
     WeeklyBookingSerializer, TournamentSerializer,
     TournamentCreateSerializer, TournamentRegistrationSerializer
@@ -30,11 +32,23 @@ from futsal.permissions import IsOwner, IsOwnerOfCourt
 from PitchPal.utils import api_response
 from accounts.models import RoleEnum
 
-# USE a.khalti.com for Sandbox and pay.khalti.com for Production
-KHALTI_INITIATE_URL = "https://a.khalti.com/api/v2/epayment/initiate/"
-KHALTI_LOOKUP_URL = "https://a.khalti.com/api/v2/epayment/lookup/"
+import hmac
+import hashlib
+import base64
 
-def parse_khalti_amount(amount):
+# eSewa v2 endpoints (Sandbox)
+ESEWA_INITIATE_URL = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
+ESEWA_STATUS_URL = "https://rc-epay.esewa.com.np/api/epay/transaction/status/"
+
+def generate_esewa_signature(secret_key, message):
+    """Generates a Base64-encoded HMAC-SHA256 signature for eSewa v2."""
+    key = secret_key.encode('utf-8')
+    msg = message.encode('utf-8')
+    hmac_sha256 = hmac.new(key, msg, hashlib.sha256)
+    digest = hmac_sha256.digest()
+    return base64.b64encode(digest).decode('utf-8')
+
+def parse_amount(amount):
     if amount is None: return 0
     if isinstance(amount, (int, float, Decimal)): return float(amount)
     
@@ -143,15 +157,18 @@ class CourtTimeSlotsView(APIView):
     swagger_tags = ['Time Slots']
 
     def get(self, request, court_id):
-        booking_date = request.query_params.get('date')
+        booking_date_str = request.query_params.get('date')
         
         # Base slots for the court
         slots = TimeSlot.objects.filter(court_id=court_id).order_by('start_time')
         
         booked_slot_ids = []
-        if booking_date:
+        if booking_date_str:
             try:
-                # 1. Confirmed or Played bookings
+                from datetime import datetime
+                booking_date = datetime.strptime(booking_date_str, '%Y-%m-%d').date()
+                
+                # 1. Confirmed or Played single bookings
                 confirmed_bookings = Booking.objects.filter(
                     court_id=court_id,
                     booking_date=booking_date,
@@ -169,11 +186,29 @@ class CourtTimeSlotsView(APIView):
                     created_at__gte=lock_time
                 )
                 
+                # 3. Active Weekly Bookings for this weekday
+                # Filter by status CONFIRMED and is_active=True
+                weekly_bookings = WeeklyBooking.objects.filter(
+                    court_id=court_id,
+                    status=BookingStatusEnum.CONFIRMED,
+                    is_active=True,
+                    start_date__lte=booking_date
+                ).filter(
+                    Q(end_date__isnull=True) | Q(end_date__gte=booking_date)
+                )
+
+                # Filter which ones match the requested weekday
+                weekday = booking_date.weekday() # 0 = Monday
+                matching_weekly_slot_ids = []
+                for wb in weekly_bookings:
+                    if wb.start_date.weekday() == weekday:
+                        matching_weekly_slot_ids.append(wb.time_slot_id)
+                
                 booked_slot_ids = list(confirmed_bookings.values_list('time_slot_id', flat=True))
                 pending_slot_ids = list(pending_bookings.values_list('time_slot_id', flat=True))
                 
-                # Combine both to show as "unavailable" in the UI
-                booked_slot_ids = list(set(booked_slot_ids + pending_slot_ids))
+                # Combine all to show as "unavailable" in the UI
+                booked_slot_ids = list(set(booked_slot_ids + pending_slot_ids + matching_weekly_slot_ids))
                 
             except Exception as e:
                 print(f"Error fetching bookings for date: {e}")
@@ -634,170 +669,154 @@ class CourtReviewListView(generics.ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return api_response(is_success=True, result={"reviews": serializer.data}, status_code=status.HTTP_200_OK)
 
-# ── KHALTI PAYMENT ──────────────────────────────────────────────────────────
+# ── ESEWA PAYMENT ───────────────────────────────────────────────────────────
 
-class KhaltiInitiateView(APIView):
+class EsewaInitiateView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     swagger_tags = ['Payment']
 
-    @swagger_auto_schema(request_body=KhaltiInitSerializer, tags=["Payment"])
     def post(self, request):
-        print("KHALTI INITIATE REQUEST RECEIVED:", request.data)
-        serializer = KhaltiInitSerializer(data=request.data)
-        if not serializer.is_valid():
-            print("KHALTI SERIALIZER ERRORS:", serializer.errors)
-            return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
-
-        booking_id = serializer.validated_data.get('booking_id')
-        registration_id = serializer.validated_data.get('registration_id')
-        weekly_booking_id = serializer.validated_data.get('weekly_booking_id')
+        booking_id = request.data.get('booking_id')
+        registration_id = request.data.get('registration_id')
+        weekly_booking_id = request.data.get('weekly_booking_id')
         
         target_obj = None
         amount = 0
-        order_name = ""
-        order_id = ""
+        transaction_uuid = ""
 
         try:
             if booking_id:
                 target_obj = Booking.objects.get(pk=booking_id, user=request.user)
                 amount = target_obj.total_amount or 0
-                order_name = f"Booking at {target_obj.court.name}"
-                order_id = f"BK-{target_obj.id}"
+                transaction_uuid = f"BK_{target_obj.id}_{int(timezone.now().timestamp())}"
                 payment, _ = Payment.objects.update_or_create(
                     booking=target_obj,
-                    defaults={'amount': amount, 'payment_method': 'khalti'}
+                    defaults={'amount': amount, 'payment_method': 'esewa'}
                 )
             elif registration_id:
                 target_obj = TournamentRegistration.objects.get(pk=registration_id, user=request.user)
-                amount = parse_khalti_amount(target_obj.tournament.entry_fee)
-                order_name = f"Tournament: {target_obj.tournament.title}"
-                order_id = f"REG-{target_obj.id}"
+                amount = parse_amount(target_obj.tournament.entry_fee)
+                transaction_uuid = f"REG_{target_obj.id}_{int(timezone.now().timestamp())}"
                 payment, _ = Payment.objects.update_or_create(
                     tournament_registration=target_obj,
-                    defaults={'amount': amount, 'payment_method': 'khalti'}
+                    defaults={'amount': amount, 'payment_method': 'esewa'}
                 )
             elif weekly_booking_id:
                 target_obj = WeeklyBooking.objects.get(pk=weekly_booking_id, user=request.user)
-                from datetime import datetime, date as date_type
-                from decimal import Decimal
-                start = datetime.combine(date_type.today(), target_obj.time_slot.start_time)
-                end = datetime.combine(date_type.today(), target_obj.time_slot.end_time)
-                hours = (end - start).seconds / 3600
+                from datetime import datetime, date as date_type, timedelta
+                start_dt = datetime.combine(date_type.today(), target_obj.time_slot.start_time)
+                end_dt = datetime.combine(date_type.today(), target_obj.time_slot.end_time)
+                duration = end_dt - start_dt
+                if duration.total_seconds() < 0: duration += timedelta(days=1)
+                hours = duration.total_seconds() / 3600
                 amount = round(Decimal(str(hours)) * target_obj.court.price_per_hour * 4, 2)
-                order_name = f"Weekly Booking at {target_obj.court.name}"
-                order_id = f"WB-{target_obj.id}"
+                transaction_uuid = f"WB_{target_obj.id}_{int(timezone.now().timestamp())}"
                 payment, _ = Payment.objects.update_or_create(
                     weekly_booking=target_obj,
-                    defaults={'amount': amount, 'payment_method': 'khalti'}
+                    defaults={'amount': amount, 'payment_method': 'esewa'}
                 )
             else:
                 return api_response(is_success=False, error_message="No target object provided.", status_code=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            print(f"KHALTI SETUP ERROR: {str(e)}")
             return api_response(is_success=False, error_message=f"Setup error: {str(e)}", status_code=status.HTTP_400_BAD_REQUEST)
 
-        if payment.status == PaymentStatusEnum.SUCCESS:
-            return api_response(is_success=False, error_message="Payment already completed.", status_code=status.HTTP_400_BAD_REQUEST)
+        # Fix for ES104: Use one decimal place and DO NOT include signed_field_names in the initiation string
+        amount_val = float(amount)
+        amount_str = "{:.1f}".format(amount_val)
 
-        if amount <= 0:
-            print(f"KHALTI ERROR: Amount is {amount}")
-            return api_response(is_success=False, error_message="Amount must be greater than zero.", status_code=status.HTTP_400_BAD_REQUEST)
+        # Initiation signature string format: total_amount=...,transaction_uuid=...,product_code=...
+        message = f"total_amount={amount_str},transaction_uuid={transaction_uuid},product_code={settings.ESEWA_PRODUCT_CODE}"
+        signature = generate_esewa_signature(settings.ESEWA_SECRET_KEY, message)
 
-        khalti_payload = {
-            "return_url": settings.KHALTI_RETURN_URL,
-            "website_url": settings.KHALTI_WEBSITE_URL,
-            "amount": int(amount * 100),
-            "purchase_order_id": order_id,
-            "purchase_order_name": order_name,
-            "customer_info": {
-                "name": request.user.email,
-                "email": request.user.email,
-                "phone": request.user.phone_number if (request.user.phone_number and len(request.user.phone_number) >= 10) else "9800000000",
-            },
+        payload = {
+            "amount": amount_str,
+            "tax_amount": "0",
+            "total_amount": amount_str,
+            "transaction_uuid": transaction_uuid,
+            "product_code": settings.ESEWA_PRODUCT_CODE,
+            "product_service_charge": "0",
+            "product_delivery_charge": "0",
+            "success_url": settings.ESEWA_SUCCESS_URL,
+            "failure_url": settings.ESEWA_FAILURE_URL,
+            "signed_field_names": "total_amount,transaction_uuid,product_code",
+            "signature": signature,
         }
 
-        headers = {"Authorization": f"Key {settings.KHALTI_SECRET_KEY}", "Content-Type": "application/json"}
-
-        try:
-            print(f"KHALTI PAYLOAD: {khalti_payload}")
-            response = requests.post(KHALTI_INITIATE_URL, json=khalti_payload, headers=headers)
-            resp_data = response.json()
-            print("KHALTI API RESPONSE:", resp_data)
-
-            if response.status_code == 200:
-                payment.pidx = resp_data.get('pidx')
-                payment.save()
-                return api_response(is_success=True, result={"payment_url": resp_data.get('payment_url'), "pidx": resp_data.get('pidx'), "order_id": order_id}, status_code=status.HTTP_200_OK)
-            return api_response(is_success=False, error_message=resp_data, status_code=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            print(f"KHALTI REQUEST ERROR: {str(e)}")
-            return api_response(is_success=False, error_message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return api_response(is_success=True, result=payload, status_code=status.HTTP_200_OK)
 
 
-class KhaltiVerifyView(APIView):
+class EsewaVerifyView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     swagger_tags = ['Payment']
 
-    @swagger_auto_schema(request_body=KhaltiVerifySerializer, tags=["Payment"])
     def post(self, request):
-        serializer = KhaltiVerifySerializer(data=request.data)
-        if not serializer.is_valid():
-            return api_response(is_success=False, error_message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
-
-        pidx = serializer.validated_data['pidx']
-        booking_id = serializer.validated_data.get('booking_id')
-        registration_id = serializer.validated_data.get('registration_id')
-        weekly_booking_id = serializer.validated_data.get('weekly_booking_id')
+        encoded_data = request.data.get('data')
+        if not encoded_data:
+            return api_response(is_success=False, error_message="No data provided.", status_code=status.HTTP_400_BAD_REQUEST)
 
         try:
-            if booking_id: payment = Payment.objects.get(pidx=pidx, booking__id=booking_id)
-            elif registration_id: payment = Payment.objects.get(pidx=pidx, tournament_registration__id=registration_id)
-            elif weekly_booking_id: payment = Payment.objects.get(pidx=pidx, weekly_booking__id=weekly_booking_id)
-            else: return api_response(is_success=False, error_message="Missing ID.", status_code=status.HTTP_400_BAD_REQUEST)
-        except Payment.DoesNotExist:
-            return api_response(is_success=False, error_message="Payment record not found.", status_code=status.HTTP_404_NOT_FOUND)
+            # Decode Base64 data
+            import json
+            decoded_bytes = base64.b64decode(encoded_data)
+            decoded_data = json.loads(decoded_bytes.decode('utf-8'))
+            print("ESEWA DECODED DATA:", decoded_data)
+            
+            transaction_uuid = decoded_data.get('transaction_uuid')
+            status_str = decoded_data.get('status')
+            total_amount = decoded_data.get('total_amount')
+            signature = decoded_data.get('signature')
 
-        headers = {"Authorization": f"Key {settings.KHALTI_SECRET_KEY}", "Content-Type": "application/json"}
+            # Verify Signature back
+            # signed_field_names: transaction_code,status,total_amount,transaction_uuid,product_code,signed_field_names
+            message = f"transaction_code={decoded_data.get('transaction_code')},status={status_str},total_amount={total_amount},transaction_uuid={transaction_uuid},product_code={decoded_data.get('product_code')},signed_field_names={decoded_data.get('signed_field_names')}"
+            expected_signature = generate_esewa_signature(settings.ESEWA_SECRET_KEY, message)
 
-        try:
-            response = requests.post(KHALTI_LOOKUP_URL, json={"pidx": pidx}, headers=headers)
-            resp_data = response.json()
-            if response.status_code == 200 and resp_data.get('status') == 'Completed':
-                payment.status = PaymentStatusEnum.SUCCESS
-                payment.transaction_id = resp_data.get('transaction_id')
-                payment.paid_at = timezone.now()
-                payment.save()
+            if signature != expected_signature:
+                print("ESEWA SIGNATURE MISMATCH")
+                return api_response(is_success=False, error_message="Signature mismatch.", status_code=status.HTTP_400_BAD_REQUEST)
 
-                # Confirm the target object
-                if payment.booking:
-                    # ✅ Final check: Is it still available? (exclude self)
-                    conflict = Booking.objects.filter(
-                        court=payment.booking.court,
-                        time_slot=payment.booking.time_slot,
-                        booking_date=payment.booking.booking_date,
-                        status__in=[BookingStatusEnum.CONFIRMED, BookingStatusEnum.COMPLETED]
-                    ).exclude(pk=payment.booking.id)
+            if status_str != 'COMPLETE':
+                return api_response(is_success=False, error_message=f"Payment status: {status_str}", status_code=status.HTTP_400_BAD_REQUEST)
 
-                    if conflict.exists():
-                        print("CONFLICT DETECTED AFTER PAYMENT")
-                        payment.status = PaymentStatusEnum.FAILED
-                        payment.save()
-                        # Keep booking as pending or mark as cancelled-conflict
-                        return api_response(is_success=False, error_message="This slot was booked by someone else while you were paying. Please contact support for a refund.", status_code=status.HTTP_409_CONFLICT)
+            # transaction_uuid format: PREFIX_ID_TIMESTAMP
+            parts = transaction_uuid.split("_")
+            if len(parts) < 2:
+                return api_response(is_success=False, error_message="Invalid transaction UUID format.", status_code=status.HTTP_400_BAD_REQUEST)
+                
+            prefix = parts[0]
+            target_id = parts[1]
 
-                    payment.booking.status = BookingStatusEnum.CONFIRMED
-                    payment.booking.save()
-                elif payment.tournament_registration:
-                    payment.tournament_registration.status = BookingStatusEnum.CONFIRMED
-                    payment.tournament_registration.save()
-                elif payment.weekly_booking:
-                    payment.weekly_booking.status = BookingStatusEnum.CONFIRMED
-                    payment.weekly_booking.save()
+            payment = None
+            if prefix == "BK":
+                payment = Payment.objects.get(booking__id=target_id)
+            elif prefix == "REG":
+                payment = Payment.objects.get(tournament_registration__id=target_id)
+            elif prefix == "WB":
+                payment = Payment.objects.get(weekly_booking__id=target_id)
 
-                return api_response(is_success=True, result="Payment verified and booking confirmed", status_code=status.HTTP_200_OK)
-            return api_response(is_success=False, error_message="Verification failed.", status_code=status.HTTP_400_BAD_REQUEST)
+            if not payment:
+                return api_response(is_success=False, error_message="Payment record not found.", status_code=status.HTTP_404_NOT_FOUND)
+
+            # All good!
+            payment.status = PaymentStatusEnum.SUCCESS
+            payment.transaction_id = decoded_data.get('transaction_code')
+            payment.paid_at = timezone.now()
+            payment.save()
+
+            if payment.booking:
+                payment.booking.status = BookingStatusEnum.CONFIRMED
+                payment.booking.save()
+            elif payment.tournament_registration:
+                payment.tournament_registration.status = BookingStatusEnum.CONFIRMED
+                payment.tournament_registration.save()
+            elif payment.weekly_booking:
+                payment.weekly_booking.status = BookingStatusEnum.CONFIRMED
+                payment.weekly_booking.save()
+
+            return api_response(is_success=True, result="Payment verified successfully", status_code=status.HTTP_200_OK)
+
         except Exception as e:
-            print(f"KHALTI VERIFY ERROR: {str(e)}")
-            return api_response(is_success=False, error_message=str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            print(f"ESEWA VERIFY ERROR: {str(e)}")
+            return api_response(is_success=False, error_message=str(e), status_code=status.HTTP_400_BAD_REQUEST)

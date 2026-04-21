@@ -1,22 +1,22 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
-import { verifyKhaltiPayment } from "../api/payment";
+import { verifyEsewaPayment } from "../api/payment";
 
-export default function KhaltiCallback() {
+export default function EsewaCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState("verifying"); // verifying, success, error
-  const [message, setMessage] = useState("Verifying your payment with Khalti...");
+  const [message, setMessage] = useState("Verifying your payment with eSewa...");
   const verifyAttempted = useRef(false);
 
   useEffect(() => {
-    const pidx = searchParams.get("pidx");
-    const purchaseOrderId = searchParams.get("purchase_order_id");
+    // eSewa redirects with a ?data=... parameter
+    const data = searchParams.get("data");
 
     if (verifyAttempted.current) return;
     
-    if (!pidx || !purchaseOrderId) {
+    if (!data) {
       setStatus("error");
       setMessage("Invalid payment callback parameters.");
       return;
@@ -25,21 +25,7 @@ export default function KhaltiCallback() {
     const verify = async () => {
       verifyAttempted.current = true;
       try {
-        const payload = { pidx };
-        
-        // Handle prefixed IDs (BK-xxx, REG-xxx, or WB-xxx)
-        if (purchaseOrderId.startsWith("REG-")) {
-          payload.registration_id = parseInt(purchaseOrderId.replace("REG-", ""));
-        } else if (purchaseOrderId.startsWith("BK-")) {
-          payload.booking_id = parseInt(purchaseOrderId.replace("BK-", ""));
-        } else if (purchaseOrderId.startsWith("WB-")) {
-          payload.weekly_booking_id = parseInt(purchaseOrderId.replace("WB-", ""));
-        } else {
-          // Fallback for old style numeric IDs
-          payload.booking_id = parseInt(purchaseOrderId);
-        }
-
-        const res = await verifyKhaltiPayment(payload);
+        const res = await verifyEsewaPayment(data);
 
         const isSuccess = res.IsSuccess ?? res.is_success;
         const resData = res.Result ?? res.result;
@@ -73,8 +59,8 @@ export default function KhaltiCallback() {
           <div className="space-y-6">
             <div className="relative w-24 h-24 mx-auto">
               <div className="absolute inset-0 border-4 border-green-100 rounded-full"></div>
-              <div className="absolute inset-0 border-4 border-green-600 rounded-full border-t-transparent animate-spin"></div>
-              <Loader2 className="absolute inset-0 m-auto text-green-600 w-10 h-10 animate-pulse" />
+              <div className="absolute inset-0 border-4 border-[#60bb46] rounded-full border-t-transparent animate-spin"></div>
+              <Loader2 className="absolute inset-0 m-auto text-[#60bb46] w-10 h-10 animate-pulse" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Processing Payment</h1>
             <p className="text-gray-500 font-medium leading-relaxed">{message}</p>
@@ -84,7 +70,7 @@ export default function KhaltiCallback() {
         {status === "success" && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto shadow-inner">
-              <CheckCircle2 className="w-12 h-12 text-green-600" />
+              <CheckCircle2 className="w-12 h-12 text-[#60bb46]" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Payment Successful!</h1>
             <p className="text-gray-600 font-medium leading-relaxed">{message}</p>
@@ -126,7 +112,7 @@ export default function KhaltiCallback() {
       </div>
       
       <p className="mt-8 text-sm text-gray-400 font-medium">
-        Secure Transaction • Powered by PitchPal & Khalti
+        Secure Transaction • Powered by PitchPal & eSewa
       </p>
     </div>
   );

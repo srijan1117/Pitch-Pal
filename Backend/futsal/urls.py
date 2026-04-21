@@ -7,7 +7,7 @@ from futsal.views import (
     TimeSlotCreateView, TimeSlotDetailView, CourtTimeSlotsView,
     BookingCreateView, UserBookingListView, BookingCancelView, OwnerBookingListView,
     WalkinBookingView,
-    KhaltiInitiateView, KhaltiVerifyView,
+    EsewaInitiateView, EsewaVerifyView,
 )
 from futsal.views import (
     TournamentListView, TournamentDetailView, TournamentCreateView,
@@ -57,6 +57,6 @@ urlpatterns = [
     path('courts/<int:court_id>/reviews/', CourtReviewListView.as_view(), name='court-reviews'),
 
     # ── Payment ──────────────────────────────────
-    path('payment/khalti/initiate/', KhaltiInitiateView.as_view(), name='khalti-initiate'),
-    path('payment/khalti/verify/', KhaltiVerifyView.as_view(), name='khalti-verify'),
+    path('payment/esewa/initiate/', EsewaInitiateView.as_view(), name='esewa-initiate'),
+    path('payment/esewa/verify/', EsewaVerifyView.as_view(), name='esewa-verify'),
 ]

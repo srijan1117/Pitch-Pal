@@ -130,7 +130,7 @@ class Payment(models.Model):
         null=True, blank=True
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(max_length=50, default='khalti')
+    payment_method = models.CharField(max_length=50, default='esewa')
     pidx = models.CharField(max_length=255, blank=True, null=True)
     transaction_id = models.CharField(max_length=255, blank=True, null=True)
     status = models.CharField(
